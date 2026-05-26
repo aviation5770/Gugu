@@ -18,7 +18,7 @@ export default function LongLandingPage() {
             <Image src="/images/gugu.svg" alt="구구" fill priority />
           </S.LogoContainer>
           <S.MainTitle>
-            초등 고학년을 위한<br />특별한 소수 구구단 놀이터, <span>'구구'</span>
+            초등 고학년을 위한<br />특별한 소수 구구단 놀이터, <span>&apos;구구&apos;</span>
           </S.MainTitle>
           <S.SubDescription>
             유치한 유아용 연산 프로그램은 이제 그만! 고학년 맞춤형 무채색 톤 디자인에서<br />
@@ -88,7 +88,7 @@ export default function LongLandingPage() {
         <S.FAQContainer>
           <S.FAQRow>
             <S.FAQQuestion><span>Q.</span> 학생들도 개별 회원가입을 해야 하나요?</S.FAQQuestion>
-            <S.FAQAnswer>아닙니다. 학생은 번거로운 절차 없이 교사가 공유해 준 고유 '수업 코드'와 배정된 학번만 입력하면 비밀번호 설정 후 간편하게 접속할 수 있습니다.</S.FAQAnswer>
+            <S.FAQAnswer>아닙니다. 학생은 번거로운 절차 없이 교사가 공유해 준 고유 &apos;수업 코드&apos;와 배정된 학번만 입력하면 비밀번호 설정 후 간편하게 접속할 수 있습니다.</S.FAQAnswer>
           </S.FAQRow>
           
           <S.FAQRow>
