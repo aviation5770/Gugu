@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient, createClient } from "@/utils/supabase/server";
 
 type ActionResult<T = undefined> =
   | {
@@ -156,7 +156,10 @@ export async function teacherSignupAction({
 }: TeacherSignupInput): Promise<ActionResult<TeacherSession>> {
   try {
     const normalizedName = normalizeRequiredText(name, "이름");
-    const normalizedEmail = normalizeRequiredText(email, "이메일").toLowerCase();
+    const normalizedEmail = normalizeRequiredText(
+      email,
+      "이메일",
+    ).toLowerCase();
     const normalizedPassword = normalizeRequiredText(password, "비밀번호");
 
     if (normalizedPassword !== confirmPassword) {
@@ -164,6 +167,8 @@ export async function teacherSignupAction({
     }
 
     const supabase = await createClient();
+
+    // [1단계] Supabase Auth(인증 시스템)에 계정 생성
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password: normalizedPassword,
@@ -181,6 +186,22 @@ export async function teacherSignupAction({
 
     if (!data.user) {
       throw new Error("회원가입 결과를 확인할 수 없습니다.");
+    }
+
+    const profileSupabase = process.env.SUPABASE_SERVICE_ROLE_KEY
+      ? await createAdminClient()
+      : supabase;
+    const { error: profileError } = await profileSupabase.from("teacher").upsert(
+      {
+        id: data.user.id,
+        email: normalizedEmail,
+        name: normalizedName,
+      },
+      { onConflict: "id" },
+    );
+
+    if (profileError) {
+      throw new Error(`선생님 정보 저장 실패: ${profileError.message}`);
     }
 
     return {

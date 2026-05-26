@@ -1,33 +1,48 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useTransition } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import * as S from './signup.style';
 import AuthBackground from '../_components/AuthBackground';
+import { teacherSignupAction } from '@/app/actions/auth';
 
 export default function TeacherSignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   const handleSignupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
 
     if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) return;
 
     if (password !== confirmPassword) {
-      alert('비밀번호가 일치하지 않습니다. 다시 확인해 주세요.');
+      setErrorMessage('비밀번호가 일치하지 않습니다. 다시 확인해 주세요.');
       return;
     }
 
-    console.log('교사 회원가입 요청:', { name, email, password });
-    
-    alert('회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.');
-    router.push('/login/teacher');
+    startTransition(async () => {
+      const result = await teacherSignupAction({
+        name,
+        email,
+        password,
+        confirmPassword,
+      });
+
+      if (!result.success) {
+        setErrorMessage(result.error);
+        return;
+      }
+
+      router.push('/login/teacher');
+    });
   };
 
   return (
@@ -68,7 +83,10 @@ export default function TeacherSignupPage() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
           />
-          <S.SubmitButton type="submit">회원가입</S.SubmitButton>
+          {errorMessage ? <S.ErrorMessage>{errorMessage}</S.ErrorMessage> : null}
+          <S.SubmitButton type="submit" disabled={isPending}>
+            {isPending ? '가입 중...' : '회원가입'}
+          </S.SubmitButton>
         </S.InputForm>
 
         <S.FooterArea>

@@ -89,6 +89,20 @@ export const SubmitButton = styled.button`
   &:active {
     transform: scale(0.98);
   }
+
+  &:disabled {
+    background: #f3a7c2;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+export const ErrorMessage = styled.p`
+  width: 100%;
+  margin: 4px 0 0;
+  color: #d32f2f;
+  font-size: 13px;
+  font-weight: 600;
 `;
 
 export const FooterArea = styled.div`
