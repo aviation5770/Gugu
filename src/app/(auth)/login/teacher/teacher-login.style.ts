@@ -22,22 +22,12 @@ export const CardSection = styled.div`
   padding: 0 24px;
 `;
 
-
 export const LogoWrapper = styled.div`
   position: relative;
   width: 220px;
   height: 140px;
   margin-bottom: 40px;
 `;
-
-
-export const StepTitle = styled.p`
-  font-size: 15px;
-  color: #888;
-  margin-bottom: 16px;
-  text-align: center;
-`;
-
 
 export const InputForm = styled.form`
   width: 100%;
@@ -46,7 +36,7 @@ export const InputForm = styled.form`
   gap: 12px;
 `;
 
-export const CodeInput = styled.input`
+export const AuthInput = styled.input`
   width: 100%;
   height: 52px;
   padding: 0 18px;
@@ -92,14 +82,13 @@ export const SubmitButton = styled.button`
   }
 `;
 
-
 export const FooterArea = styled.div`
   width: 100%;
   margin-top: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
 
   .divider {
     width: 100%;
@@ -116,25 +105,51 @@ export const FooterArea = styled.div`
       height: 1px;
       background: #e0e0e0;
     }
-
     span {
       white-space: nowrap;
     }
   }
 
-  .login-link {
+  .nav-links-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #ddd;
+    font-size: 14px;
+  }
+
+  .text-link {
     background: none;
     border: none;
     color: #999;
     font-size: 14px;
     cursor: pointer;
     padding: 4px 0;
-    text-decoration: underline;
-    text-underline-offset: 3px;
     transition: color 0.2s;
 
     &:hover {
       color: #f06292;
+    }
+  }
+
+  .signup-prompt {
+    font-size: 14px;
+    color: #bbb;
+    margin-top: 4px;
+
+    .signup-link {
+      background: none;
+      border: none;
+      color: #f06292;
+      font-weight: 600;
+      cursor: pointer;
+      margin-left: 6px;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+
+      &:hover {
+        color: #e91e8c;
+      }
     }
   }
 `;
