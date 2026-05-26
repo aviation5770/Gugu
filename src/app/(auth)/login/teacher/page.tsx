@@ -75,7 +75,7 @@ export default function TeacherLoginPage() {
             <button 
               type="button" 
               className="signup-link" 
-              onClick={() => router.push('/signup/teacher')}
+              onClick={() => router.push('/signup')}
             >
               회원가입
             </button>
