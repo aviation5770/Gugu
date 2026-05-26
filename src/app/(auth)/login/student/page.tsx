@@ -40,19 +40,34 @@ export default function StudentLoginPage() {
 
   return (
     <S.Container>
-      {/* Background decorations */}
-      <S.BgYellowEllipse>
+      <S.BgYellowEllipseTopLeft>
         <Image src="/background/YellowEllipse.svg" alt="" fill aria-hidden="true" />
-      </S.BgYellowEllipse>
-      <S.BgPinkEllipse>
+      </S.BgYellowEllipseTopLeft>
+      <S.BgYellowEllipseBottomRight>
+        <Image src="/background/YellowEllipse.svg" alt="" fill aria-hidden="true" />
+      </S.BgYellowEllipseBottomRight>
+
+      <S.BgPinkEllipseTopLeft>
         <Image src="/background/PinkEllipse.svg" alt="" fill aria-hidden="true" />
-      </S.BgPinkEllipse>
+      </S.BgPinkEllipseTopLeft>
+      <S.BgPinkEllipseBottomRight>
+        <Image src="/background/PinkEllipse.svg" alt="" fill aria-hidden="true" />
+      </S.BgPinkEllipseBottomRight>
+
       <S.BgGreenCircleTopRight>
         <Image src="/background/GreenCircle.svg" alt="" fill aria-hidden="true" />
       </S.BgGreenCircleTopRight>
-      <S.BgRedCircleBottomRight>
+      <S.BgGreenCircleBottomLeft>
+        <Image src="/background/GreenCircle.svg" alt="" fill aria-hidden="true" />
+      </S.BgGreenCircleBottomLeft>
+
+      <S.BgRedCircleTopRight>
         <Image src="/background/RedCircle.svg" alt="" fill aria-hidden="true" />
-      </S.BgRedCircleBottomRight>
+      </S.BgRedCircleTopRight>
+      <S.BgRedCircleBottomLeft>
+        <Image src="/background/RedCircle.svg" alt="" fill aria-hidden="true" />
+      </S.BgRedCircleBottomLeft>
+
       <S.BgTriangleTopRight>
         <Image src="/background/Triangle.svg" alt="" fill aria-hidden="true" />
       </S.BgTriangleTopRight>
