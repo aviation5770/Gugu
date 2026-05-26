@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import * as S from './landing-page.style';
-import AuthBackground from '../(auth)/_components/AuthBackground';
+import AuthBackground from './(auth)/_components/AuthBackground';
 
 export default function LongLandingPage() {
   const router = useRouter();
