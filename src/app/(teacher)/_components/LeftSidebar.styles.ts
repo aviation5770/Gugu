@@ -89,11 +89,11 @@ export const MenuLink = styled(Link)<{ $isActive: boolean }>`
   text-decoration: none;
   transition: all 0.2s ease-in-out;
 
-  background-color: ${(props) => (props.$isActive ? "#eff6ff" : "transparent")};
-  color: ${(props) => (props.$isActive ? "#2563eb" : "#374151")};
+  background-color: ${(props) => (props.$isActive ? "#FFD165" : "transparent")};
+  color: ${(props) => (props.$isActive ? "#ffffffff" : "#514437ff")};
 
   &:hover {
-    background-color: ${(props) => (props.$isActive ? "#eff6ff" : "#f3f4f6")};
+    background-color: ${(props) => (props.$isActive ? "#ffdd8fff" : "#f6f5f3ff")};
   }
 `;
 
@@ -131,7 +131,7 @@ export const ClassShortcutLink = styled(Link)`
   transition: all 0.2s ease-in-out;
 
   &:hover {
-    color: #2563eb;
-    background-color: #f9fafb;
+    color: #60c43e;
+    background-color: #f6f5f3ff;
   }
 `;
