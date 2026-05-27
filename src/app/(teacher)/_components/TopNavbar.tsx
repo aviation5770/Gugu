@@ -15,7 +15,7 @@ export default function TopNavbar({ teacherName, onToggleSidebar }: TopNavbarPro
         <S.ToggleButton onClick={onToggleSidebar} aria-label="메뉴 토글">
           ☰
         </S.ToggleButton>
-        <S.LogoLink href="/teacher/dashboard">
+        <S.LogoLink href="/teacher/home">
           <S.LogoImageContainer>
             <Image src="/images/gugu.svg" alt="Gugu Logo" fill style={{ objectFit: "contain" }} />
           </S.LogoImageContainer>
