@@ -1,6 +1,7 @@
 "use client";
 
 import * as S from "./TopNavbar.styles";
+import Image from "next/image";
 
 interface TopNavbarProps {
   teacherName: string;
@@ -15,7 +16,9 @@ export default function TopNavbar({ teacherName, onToggleSidebar }: TopNavbarPro
           ☰
         </S.ToggleButton>
         <S.LogoLink href="/teacher/dashboard">
-          <S.LogoText>구구</S.LogoText>
+          <S.LogoImageContainer>
+            <Image src="/images/gugu.svg" alt="Gugu Logo" fill style={{ objectFit: "contain" }} />
+          </S.LogoImageContainer>
         </S.LogoLink>
       </S.LeftSection>
 

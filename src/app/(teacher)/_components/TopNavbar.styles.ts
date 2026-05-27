@@ -42,13 +42,21 @@ export const LogoLink = styled(Link)`
   align-items: center;
   gap: 8px;
   text-decoration: none;
+  height: 100%;
+
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+  &:hover {
+    opacity: 0.85;
+  }
 `;
 
-export const LogoText = styled.span`
-  font-size: 20px;
-  font-weight: 700;
-  color: #2563eb;
-  letter-spacing: -0.025em;
+export const LogoImageContainer = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 50px;
+  height: 50px;
 `;
 
 export const RightSection = styled.div`
