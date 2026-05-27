@@ -59,9 +59,10 @@ export const ClassCard = styled.div`
   }
 `;
 
-export const CardHeader = styled.div`
+export const CardHeader = styled.div<{ $bgColor: string }>`
   padding: 20px;
-  background: linear-gradient(135deg, #1d4ed8, #4338ca);
+  background-color: ${(props) =>
+    props.$bgColor}; /* 🔑 전달받은 단색을 배경색으로 지정 */
   color: #ffffff;
   position: relative;
   height: 112px;
@@ -126,12 +127,12 @@ export const AlertBox = styled.div`
 
 export const AlertLabel = styled.p`
   font-weight: 600;
-  color: #6b7280;
+  color: #083b4d;
   margin-bottom: 2px;
 `;
 
 export const AlertText = styled.p`
-  color: #374151;
+  color: rgba(71, 77, 88, 1);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -157,7 +158,7 @@ export const FooterButton = styled.button`
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #6b7280;
+  color: #083b4d;
   cursor: pointer;
   transition: all 0.2s;
 

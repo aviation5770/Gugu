@@ -19,6 +19,8 @@ const MOCK_CLASS_CARDS = [
   },
 ];
 
+const HEADER_COLORS = ["#9145D4", "#FA4541", "#60C43E", "#EF466E", "#FFD165"];
+
 export default function TeacherDashboardPage() {
   const classesData = MOCK_CLASS_CARDS;
 
@@ -30,35 +32,39 @@ export default function TeacherDashboardPage() {
       </S.HeaderTitleSection>
 
       <S.CardGrid>
-        {classesData.map((item) => (
-          <S.ClassCard key={item.id}>
-            <S.CardHeader>
-              <S.ClassName>{item.class_name}</S.ClassName>
-              <S.TeacherName>{item.teacher_name} 선생님</S.TeacherName>
-              
-              <S.ClassProfileBadge $profileColor={item.profile_color}>
-                {item.class_name.replace(/[^a-zA-Z0-9가-힣]/g, "").slice(0, 2)}
-              </S.ClassProfileBadge>
-            </S.CardHeader>
+        {classesData.map((item, index) => {
+          const cardBgColor = HEADER_COLORS[index % HEADER_COLORS.length];
 
-            <S.CardBody>
-              {item.todo_alert && (
-                <S.AlertBox>
-                  <S.AlertLabel>⏳ 다가오는 일정</S.AlertLabel>
-                  <S.AlertText>{item.todo_alert}</S.AlertText>
-                </S.AlertBox>
-              )}
-            </S.CardBody>
+          return (
+            <S.ClassCard key={item.id}>
+              <S.CardHeader $bgColor={cardBgColor}>
+                <S.ClassName>{item.class_name}</S.ClassName>
+                <S.TeacherName>{item.teacher_name} 선생님</S.TeacherName>
+                
+                <S.ClassProfileBadge $profileColor={item.profile_color}>
+                  {item.class_name.replace(/[^a-zA-Z0-9가-힣]/g, "").slice(0, 2)}
+                </S.ClassProfileBadge>
+              </S.CardHeader>
 
-            <S.CardFooterToolbar>
-              <S.FooterButton title="학생 대시보드 바로가기">
-                <span>👤</span>
-                <S.FooterButtonText>학생 대시보드</S.FooterButtonText>
-              </S.FooterButton>
-              <S.MoreMenuButton title="추가 옵션">⋮</S.MoreMenuButton>
-            </S.CardFooterToolbar>
-          </S.ClassCard>
-        ))}
+              <S.CardBody>
+                {item.todo_alert && (
+                  <S.AlertBox>
+                    <S.AlertLabel>⏳ 다가오는 일정</S.AlertLabel>
+                    <S.AlertText>{item.todo_alert}</S.AlertText>
+                  </S.AlertBox>
+                )}
+              </S.CardBody>
+
+              <S.CardFooterToolbar>
+                <S.FooterButton title="학생 대시보드 바로가기">
+                  <span>👤</span>
+                  <S.FooterButtonText>학생 대시보드</S.FooterButtonText>
+                </S.FooterButton>
+                <S.MoreMenuButton title="추가 옵션">⋮</S.MoreMenuButton>
+              </S.CardFooterToolbar>
+            </S.ClassCard>
+          );
+        })}
       </S.CardGrid>
     </S.DashboardContainer>
   );
