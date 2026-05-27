@@ -30,17 +30,40 @@ const INITIAL_EVENTS = [
 ];
 
 export default function TeacherCalendarPage() {
-  const [currentYear] = useState(2026);
-  const [currentMonth] = useState(5);
+  // ⚡️ 실제 현재 날짜 기준으로 초기 상태값 바인딩 (테스트를 위해 2026년 5월로 잡으셔도 무방합니다)
+  const today = new Date();
+  const [currentYear, setCurrentYear] = useState(2026); // 시안 기준 2026 고정 세팅 유지
+  const [currentMonth, setCurrentMonth] = useState(5);  // 5월 세팅 유지
   const [selectedDate, setSelectedDate] = useState("2026-05-28");
 
   const [events, setEvents] = useState(INITIAL_EVENTS);
-
   const [inputTitle, setInputTitle] = useState("");
   const [selectedClassId, setSelectedClassId] = useState(MOCK_CLASSES[0].id);
 
-  const totalDays = 31;
-  const startDayOfWeek = 4;
+  // 🔑 1. 선택된 연/월에 맞는 실제 달력 데이터 동적 계산
+  // 특정 월의 0번째 날짜를 구하면 지난달의 마지막 날(=이번 달의 총 일수)을 반환합니다.
+  const totalDays = new Date(currentYear, currentMonth, 0).getDate();
+  // 특정 월의 1일이 무슨 요일인지 인덱스 추출 (0: 일요일, 1: 월요일 ... 6: 토요일)
+  const startDayOfWeek = new Date(currentYear, currentMonth - 1, 1).getDay();
+
+  // 🔑 2. 월 변경 핸들러 로직 (이전 달 / 다음 달)
+  const handlePrevMonth = () => {
+    if (currentMonth === 1) {
+      setCurrentYear((prev) => prev - 1);
+      setCurrentMonth(12);
+    } else {
+      setCurrentMonth((prev) => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 12) {
+      setCurrentYear((prev) => prev + 1);
+      setCurrentMonth(1);
+    } else {
+      setCurrentMonth((prev) => prev + 1);
+    }
+  };
 
   const handleCreateEvent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +91,13 @@ export default function TeacherCalendarPage() {
     }
   };
 
+  // 자릿수 보정 유틸리티 함수 (2026-05-01 포맷 유지)
+  const formatDateString = (year: number, month: number, day: number) => {
+    const mm = month < 10 ? `0${month}` : month;
+    const dd = day < 10 ? `0${day}` : day;
+    return `${year}-${mm}-${dd}`;
+  };
+
   const activeEvents = events.filter((evt) => evt.date === selectedDate);
 
   return (
@@ -82,8 +112,9 @@ export default function TeacherCalendarPage() {
           <S.CalendarHeader>
             <S.MonthTitle>{currentYear}년 {currentMonth}월</S.MonthTitle>
             <div>
-              <S.NavButton style={{ marginRight: "4px" }}>이전</S.NavButton>
-              <S.NavButton>다음</S.NavButton>
+              {/* 🔑 클릭 시 월 이동 함수 매핑 */}
+              <S.NavButton onClick={handlePrevMonth} style={{ marginRight: "4px" }}>이전</S.NavButton>
+              <S.NavButton onClick={handleNextMonth}>다음</S.NavButton>
             </div>
           </S.CalendarHeader>
 
@@ -98,11 +129,16 @@ export default function TeacherCalendarPage() {
 
             {Array.from({ length: totalDays }).map((_, i) => {
               const dayNum = i + 1;
-              const dateString = `${currentYear}-0${currentMonth}-${dayNum < 10 ? `0${dayNum}` : dayNum}`;
+              const dateString = formatDateString(currentYear, currentMonth, dayNum);
               
               const dayEvents = events.filter((evt) => evt.date === dateString);
               const isSelected = selectedDate === dateString;
-              const isToday = dateString === "2026-05-27";
+              
+              // 오늘 실제 날짜 매칭 점검용 구문
+              const isToday = 
+                today.getFullYear() === currentYear && 
+                (today.getMonth() + 1) === currentMonth && 
+                today.getDate() === dayNum;
 
               return (
                 <S.DayCell
@@ -115,12 +151,12 @@ export default function TeacherCalendarPage() {
                   
                   <S.CellEventList>
                     {dayEvents.slice(0, 2).map((evt) => (
-                      <S.MiniEventDot key={evt.id} $color={evt.color}>
+                      <S.MiniEventDot key={evt.id} $color={evt.color} title={evt.title}>
                         {evt.title}
                       </S.MiniEventDot>
                     ))}
                     {dayEvents.length > 2 && (
-                      <span style={{ fontSize: "9px", color: "#9ca3af", paddingLeft: "4px" }}>
+                      <span className="more-count">
                         +{dayEvents.length - 2}개 더
                       </span>
                     )}
@@ -164,7 +200,6 @@ export default function TeacherCalendarPage() {
             </form>
           </S.FormCard>
 
-          {/* 2. 일정 조회 및 삭제 목록 */}
           <S.EventListCard>
             <S.FormTitle>🔍 {selectedDate} 등록된 시험 목록</S.FormTitle>
             <S.EventList>

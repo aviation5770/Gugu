@@ -26,7 +26,6 @@ export const Description = styled.p`
   color: #6b7280;
 `;
 
-/* 메인 레이아웃 (좌측: 달력, 우측: 일정 등록 및 목록) */
 export const MainContentGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
@@ -37,13 +36,14 @@ export const MainContentGrid = styled.div`
   }
 `;
 
-/* ─── 달력 컴포넌트 스타일 ─── */
 export const CalendarCard = styled.div`
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
 `;
 
 export const CalendarHeader = styled.div`
@@ -57,6 +57,7 @@ export const MonthTitle = styled.h3`
   font-size: 18px;
   font-weight: 700;
   color: #111827;
+  min-width: 120px;
 `;
 
 export const NavButton = styled.button`
@@ -83,24 +84,27 @@ export const WeekDaysGrid = styled.div`
   margin-bottom: 8px;
 `;
 
+/* 🔑 달력 전체 크기를 부모 컨테이너 너비에 맞춰 유연하게 반응형으로 늘리되, 일정 격자는 균등 보정 */
 export const DaysGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 6px;
 `;
 
+/* 🔑 일자 셀 고정 설계: 내용이 넘치더라도 한 칸의 폭과 정해진 최소/최대 높이를 제한하여 크기 고정 */
 export const DayCell = styled.div<{
   $isToday?: boolean;
   $isSelected?: boolean;
 }>`
-  min-height: 80px;
+  height: 94px; /* 🔑 칸 높이를 94px로 엄격하게 고정 */
   border: 1px solid #f3f4f6;
   border-radius: 8px;
   padding: 6px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  overflow: hidden; /* 자식 요소가 셀 크기를 부풀리지 않도록 잠금 */
   transition: all 0.2s;
 
   background-color: ${(props) =>
@@ -116,29 +120,41 @@ export const DayNumber = styled.span<{ $isToday?: boolean }>`
   font-size: 13px;
   font-weight: ${(props) => (props.$isToday ? "700" : "500")};
   color: ${(props) => (props.$isToday ? "#2563eb" : "#374151")};
+  margin-bottom: 4px;
 `;
 
 export const CellEventList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-top: 4px;
+  gap: 3px;
+  width: 100%;
   overflow: hidden;
+
+  .more-count {
+    font-size: 9px;
+    color: #9ca3af;
+    padding-left: 4px;
+    font-weight: 500;
+  }
 `;
 
+/* 🔑 핵심: 텍스트가 셀 너비보다 길어질 경우 레이아웃을 무너뜨리지 않고 자르고 생략(...) 처리 */
 export const MiniEventDot = styled.div<{ $color: string }>`
-  font-size: 10px;
-  padding: 1px 4px;
+  font-size: 11px;
+  padding: 2px 5px;
   border-radius: 4px;
   background-color: ${(props) => props.$color + "15"};
   color: ${(props) => props.$color};
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+
+  /* ─── 텍스트 말줄임 필수 삼총사 속성 주입 ─── */
+  white-space: nowrap; /* 줄바꿈 금지 */
+  overflow: hidden; /* 칸 밖 영역 숨김 */
+  text-overflow: ellipsis; /* 초과분 끝에 ... 생성 */
+  width: 100%;
+  box-sizing: border-box;
 `;
 
-/* ─── 우측 폼 및 목록 스타일 ─── */
 export const SidePanel = styled.div`
   display: flex;
   flex-direction: column;
@@ -242,12 +258,16 @@ export const EventInfo = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2px;
+  max-width: 85%;
 `;
 
 export const EventTitleText = styled.p`
   font-size: 14px;
   font-weight: 600;
   color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 export const EventClassTag = styled.span`
