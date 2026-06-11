@@ -1,6 +1,7 @@
 "use client";
 
 import styled from "styled-components";
+import Link from "next/link";
 
 export const DashboardContainer = styled.div`
   display: flex;
@@ -39,7 +40,7 @@ export const CardGrid = styled.div`
   }
 `;
 
-export const ClassCard = styled.div`
+export const ClassCard = styled(Link)`
   background-color: #ffffff;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
@@ -49,6 +50,8 @@ export const ClassCard = styled.div`
   height: 256px;
   justify-content: space-between;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  color: inherit;
+  text-decoration: none;
   transition:
     transform 0.2s,
     box-shadow 0.2s;

@@ -4,11 +4,7 @@ import React, { useState, useEffect } from "react";
 import TopNavbar from "./_components/TopNavbar";
 import LeftSidebar from "./_components/LeftSidebar";
 import * as S from "./layout.styles";
-
-const MOCK_SIDEBAR_CLASSES = [
-  { id: "class-1", class_name: "3학년 3반" },
-  { id: "class-2", class_name: "5학년 1반" },
-];
+import { MOCK_TEACHER_CLASSES } from "./_data/mockTeacher";
 
 export default function TeacherLayout({
   children,
@@ -42,7 +38,7 @@ export default function TeacherLayout({
       />
 
       <S.MainContainer>
-        <LeftSidebar isOpen={isSidebarOpen} classes={MOCK_SIDEBAR_CLASSES} />
+        <LeftSidebar isOpen={isSidebarOpen} classes={MOCK_TEACHER_CLASSES} />
 
         <S.ContentArea>
           {children}

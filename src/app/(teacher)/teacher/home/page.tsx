@@ -2,27 +2,10 @@
 
 import React from "react";
 import * as S from "./home.styles";
-
-const MOCK_CLASS_CARDS = [
-  {
-    id: "class-1",
-    class_name: "3학년 3반",
-    todo_alert: "내일 오후 1:00 - 3단 시험",
-    profile_color: "#083B4D",
-  },
-  {
-    id: "class-2",
-    class_name: "5학년 2반",
-    teacher_name: "[게스트] 안형진",
-    todo_alert: "이번주 금요일 - 11단 ~ 41단 50문제 시험",
-    profile_color: "#9145D4",
-  },
-];
-
-const HEADER_COLORS = ["#9145D4", "#FA4541", "#60C43E", "#EF466E", "#FFD165"];
+import { MOCK_TEACHER_CLASSES } from "../../_data/mockTeacher";
 
 export default function TeacherDashboardPage() {
-  const classesData = MOCK_CLASS_CARDS;
+  const classesData = MOCK_TEACHER_CLASSES;
 
   return (
     <S.DashboardContainer>
@@ -32,11 +15,11 @@ export default function TeacherDashboardPage() {
       </S.HeaderTitleSection>
 
       <S.CardGrid>
-        {classesData.map((item, index) => {
-          const cardBgColor = HEADER_COLORS[index % HEADER_COLORS.length];
+        {classesData.map((item) => {
+          const cardBgColor = item.header_color;
 
           return (
-            <S.ClassCard key={item.id}>
+            <S.ClassCard key={item.id} href={`/teacher/class/${item.id}`}>
               <S.CardHeader $bgColor={cardBgColor}>
                 <S.ClassName>{item.class_name}</S.ClassName>
                 <S.TeacherName>{item.teacher_name} 선생님</S.TeacherName>

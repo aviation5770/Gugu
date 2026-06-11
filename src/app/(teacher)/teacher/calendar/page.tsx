@@ -2,51 +2,21 @@
 
 import React, { useState } from "react";
 import * as S from "./calendar.styles";
-
-const CLASS_THEME_COLORS = ["#EF466E", "#FFD165", "#9145D4", "#FA4541", "#60C43E"];
-
-const MOCK_CLASSES = [
-  { id: "class-1", class_name: "3학년 3반", color: CLASS_THEME_COLORS[0] },
-  { id: "class-2", class_name: "5학년 2반", color: CLASS_THEME_COLORS[1] },
-];
-
-const INITIAL_EVENTS = [
-  {
-    id: "evt-1",
-    class_id: "class-1",
-    class_name: "3학년 3반",
-    title: "3단 시험",
-    date: "2026-05-28",
-    color: CLASS_THEME_COLORS[2],
-  },
-  {
-    id: "evt-2",
-    class_id: "class-2",
-    class_name: "5학년 2반",
-    title: "11단 ~ 41단 50문제 시험",
-    date: "2026-05-15",
-    color: CLASS_THEME_COLORS[0],
-  },
-];
+import { MOCK_EVENTS, MOCK_TEACHER_CLASSES } from "../../_data/mockTeacher";
 
 export default function TeacherCalendarPage() {
-  // ⚡️ 실제 현재 날짜 기준으로 초기 상태값 바인딩 (테스트를 위해 2026년 5월로 잡으셔도 무방합니다)
   const today = new Date();
-  const [currentYear, setCurrentYear] = useState(2026); // 시안 기준 2026 고정 세팅 유지
-  const [currentMonth, setCurrentMonth] = useState(5);  // 5월 세팅 유지
+  const [currentYear, setCurrentYear] = useState(2026);
+  const [currentMonth, setCurrentMonth] = useState(5);
   const [selectedDate, setSelectedDate] = useState("2026-05-28");
 
-  const [events, setEvents] = useState(INITIAL_EVENTS);
+  const [events, setEvents] = useState(MOCK_EVENTS);
   const [inputTitle, setInputTitle] = useState("");
-  const [selectedClassId, setSelectedClassId] = useState(MOCK_CLASSES[0].id);
+  const [selectedClassId, setSelectedClassId] = useState(MOCK_TEACHER_CLASSES[0].id);
 
-  // 🔑 1. 선택된 연/월에 맞는 실제 달력 데이터 동적 계산
-  // 특정 월의 0번째 날짜를 구하면 지난달의 마지막 날(=이번 달의 총 일수)을 반환합니다.
   const totalDays = new Date(currentYear, currentMonth, 0).getDate();
-  // 특정 월의 1일이 무슨 요일인지 인덱스 추출 (0: 일요일, 1: 월요일 ... 6: 토요일)
   const startDayOfWeek = new Date(currentYear, currentMonth - 1, 1).getDay();
 
-  // 🔑 2. 월 변경 핸들러 로직 (이전 달 / 다음 달)
   const handlePrevMonth = () => {
     if (currentMonth === 1) {
       setCurrentYear((prev) => prev - 1);
@@ -69,7 +39,7 @@ export default function TeacherCalendarPage() {
     e.preventDefault();
     if (!inputTitle.trim()) return alert("일정 제목을 입력해주세요.");
 
-    const targetClass = MOCK_CLASSES.find((c) => c.id === selectedClassId);
+    const targetClass = MOCK_TEACHER_CLASSES.find((c) => c.id === selectedClassId);
     if (!targetClass) return;
 
     const newEvent = {
@@ -78,7 +48,7 @@ export default function TeacherCalendarPage() {
       class_name: targetClass.class_name,
       title: inputTitle,
       date: selectedDate,
-      color: targetClass.color,
+      color: targetClass.header_color,
     };
 
     setEvents([...events, newEvent]);
@@ -91,7 +61,6 @@ export default function TeacherCalendarPage() {
     }
   };
 
-  // 자릿수 보정 유틸리티 함수 (2026-05-01 포맷 유지)
   const formatDateString = (year: number, month: number, day: number) => {
     const mm = month < 10 ? `0${month}` : month;
     const dd = day < 10 ? `0${day}` : day;
@@ -134,7 +103,6 @@ export default function TeacherCalendarPage() {
               const dayEvents = events.filter((evt) => evt.date === dateString);
               const isSelected = selectedDate === dateString;
               
-              // 오늘 실제 날짜 매칭 점검용 구문
               const isToday = 
                 today.getFullYear() === currentYear && 
                 (today.getMonth() + 1) === currentMonth && 
@@ -178,7 +146,7 @@ export default function TeacherCalendarPage() {
                   value={selectedClassId}
                   onChange={(e) => setSelectedClassId(e.target.value)}
                 >
-                  {MOCK_CLASSES.map((c) => (
+                  {MOCK_TEACHER_CLASSES.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.class_name}
                     </option>
