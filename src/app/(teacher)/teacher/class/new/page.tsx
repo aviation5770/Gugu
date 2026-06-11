@@ -1,18 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import type { FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import * as S from "./new-class.styles";
+import { useTeacherClasses } from "../../../_context/TeacherClassContext";
 
 export default function NewClassPage() {
   const [grade, setGrade] = useState("4");
   const [room, setRoom] = useState("1");
   const [studentCount, setStudentCount] = useState("24");
-  const [resultCode, setResultCode] = useState("");
+  const { addClass } = useTeacherClasses();
+  const router = useRouter();
   const className = `${grade}학년 ${room}반`;
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setResultCode("GG-4101");
+    const createdClass = addClass({ grade, room, studentCount });
+    router.push(`/teacher/class/${createdClass.id}`);
   };
 
   return (
@@ -45,11 +50,10 @@ export default function NewClassPage() {
           <S.SubmitButton type="submit">자동 명단 생성</S.SubmitButton>
         </S.Form>
 
-        {resultCode ? (
-          <S.ResultBox>
-            {className} 생성 준비 완료 · 수업 코드 {resultCode} · {studentCount}명 명단 생성
-          </S.ResultBox>
-        ) : null}
+        <S.ResultBox>
+          제출하면 {className} 카드가 홈과 사이드바에 추가되고, 학생 {studentCount || "0"}명
+          명단이 자동 생성됩니다.
+        </S.ResultBox>
 
         <S.BackLink href="/teacher/home">홈으로 돌아가기</S.BackLink>
       </S.FormPanel>

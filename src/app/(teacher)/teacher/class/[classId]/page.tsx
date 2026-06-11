@@ -7,12 +7,13 @@ import {
   getClassRankings,
   getStudentsByClass,
   MOCK_EVENTS,
-  MOCK_TEACHER_CLASSES,
 } from "../../../_data/mockTeacher";
+import { useTeacherClasses } from "../../../_context/TeacherClassContext";
 
 export default function TeacherClassPage() {
   const params = useParams<{ classId: string }>();
-  const classItem = MOCK_TEACHER_CLASSES.find((item) => item.id === params.classId);
+  const { classes } = useTeacherClasses();
+  const classItem = classes.find((item) => item.id === params.classId);
 
   if (!classItem) {
     return (
@@ -27,12 +28,28 @@ export default function TeacherClassPage() {
     );
   }
 
-  const students = getStudentsByClass(classItem.id);
+  const storedStudents = getStudentsByClass(classItem.id);
+  const students =
+    storedStudents.length > 0
+      ? storedStudents
+      : Array.from({ length: classItem.student_count }, (_, index) => ({
+          id: `${classItem.id}-student-${index + 1}`,
+          class_id: classItem.id,
+          student_number: index + 1,
+          name: `${index + 1}번 학생`,
+          birth_date: "",
+          accuracy: 0,
+          best_time: 0,
+          solved_count: 0,
+        }));
   const rankings = getClassRankings(classItem.id);
   const classEvents = MOCK_EVENTS.filter((event) => event.class_id === classItem.id);
-  const averageAccuracy = Math.round(
-    students.reduce((sum, student) => sum + student.accuracy, 0) / students.length,
-  );
+  const averageAccuracy =
+    students.length > 0
+      ? Math.round(
+          students.reduce((sum, student) => sum + student.accuracy, 0) / students.length,
+        )
+      : 0;
   const fastestRecord = rankings[0]?.best_time ?? 0;
 
   return (

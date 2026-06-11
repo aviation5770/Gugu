@@ -148,7 +148,7 @@ export const CardFooterToolbar = styled.div`
   border-t: 1px solid #f3f4f6;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   color: #6b7280;
 `;
 

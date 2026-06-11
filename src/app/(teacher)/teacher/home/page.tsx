@@ -2,10 +2,10 @@
 
 import React from "react";
 import * as S from "./home.styles";
-import { MOCK_TEACHER_CLASSES } from "../../_data/mockTeacher";
+import { useTeacherClasses } from "../../_context/TeacherClassContext";
 
 export default function TeacherDashboardPage() {
-  const classesData = MOCK_TEACHER_CLASSES;
+  const { classes } = useTeacherClasses();
 
   return (
     <S.DashboardContainer>
@@ -15,7 +15,7 @@ export default function TeacherDashboardPage() {
       </S.HeaderTitleSection>
 
       <S.CardGrid>
-        {classesData.map((item) => {
+        {classes.map((item) => {
           const cardBgColor = item.header_color;
 
           return (
@@ -39,10 +39,6 @@ export default function TeacherDashboardPage() {
               </S.CardBody>
 
               <S.CardFooterToolbar>
-                <S.FooterButton title="학생 대시보드 바로가기">
-                  <span>👤</span>
-                  <S.FooterButtonText>학생 대시보드</S.FooterButtonText>
-                </S.FooterButton>
                 <S.MoreMenuButton title="추가 옵션">⋮</S.MoreMenuButton>
               </S.CardFooterToolbar>
             </S.ClassCard>

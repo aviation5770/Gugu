@@ -6,18 +6,23 @@ import {
   getClassRankings,
   getStudentsByClass,
   MOCK_EVENTS,
-  MOCK_TEACHER_CLASSES,
 } from "../../_data/mockTeacher";
+import { useTeacherClasses } from "../../_context/TeacherClassContext";
 
 export default function TeacherDashboardPage() {
-  const totalStudents = MOCK_TEACHER_CLASSES.reduce(
+  const { classes } = useTeacherClasses();
+  const totalStudents = classes.reduce(
     (sum, classItem) => sum + classItem.student_count,
     0,
   );
   const allRankings = getClassRankings();
-  const averageAccuracy = Math.round(
-    allRankings.reduce((sum, student) => sum + student.accuracy, 0) / allRankings.length,
-  );
+  const averageAccuracy =
+    allRankings.length > 0
+      ? Math.round(
+          allRankings.reduce((sum, student) => sum + student.accuracy, 0) /
+            allRankings.length,
+        )
+      : 0;
   const fastestRecord = allRankings.reduce(
     (fastest, student) => Math.min(fastest, student.best_time),
     Number.POSITIVE_INFINITY,
@@ -38,7 +43,7 @@ export default function TeacherDashboardPage() {
       <S.StatGrid>
         <S.StatCard>
           <S.StatLabel>운영 클래스</S.StatLabel>
-          <S.StatValue>{MOCK_TEACHER_CLASSES.length}개</S.StatValue>
+          <S.StatValue>{classes.length}개</S.StatValue>
         </S.StatCard>
         <S.StatCard>
           <S.StatLabel>전체 학생</S.StatLabel>
@@ -58,11 +63,15 @@ export default function TeacherDashboardPage() {
         <S.Panel>
           <S.PanelTitle>클래스별 학습 현황</S.PanelTitle>
           <S.ClassRows>
-            {MOCK_TEACHER_CLASSES.map((classItem) => {
+            {classes.map((classItem) => {
               const students = getStudentsByClass(classItem.id);
-              const classAverage = Math.round(
-                students.reduce((sum, student) => sum + student.accuracy, 0) / students.length,
-              );
+              const classAverage =
+                students.length > 0
+                  ? Math.round(
+                      students.reduce((sum, student) => sum + student.accuracy, 0) /
+                        students.length,
+                    )
+                  : 0;
               const classFastest = students.reduce(
                 (fastest, student) => Math.min(fastest, student.best_time),
                 Number.POSITIVE_INFINITY,

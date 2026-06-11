@@ -2,9 +2,11 @@
 
 import React, { useState } from "react";
 import * as S from "./calendar.styles";
-import { MOCK_EVENTS, MOCK_TEACHER_CLASSES } from "../../_data/mockTeacher";
+import { MOCK_EVENTS } from "../../_data/mockTeacher";
+import { useTeacherClasses } from "../../_context/TeacherClassContext";
 
 export default function TeacherCalendarPage() {
+  const { classes } = useTeacherClasses();
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(2026);
   const [currentMonth, setCurrentMonth] = useState(5);
@@ -12,7 +14,7 @@ export default function TeacherCalendarPage() {
 
   const [events, setEvents] = useState(MOCK_EVENTS);
   const [inputTitle, setInputTitle] = useState("");
-  const [selectedClassId, setSelectedClassId] = useState(MOCK_TEACHER_CLASSES[0].id);
+  const [selectedClassId, setSelectedClassId] = useState(classes[0]?.id ?? "");
 
   const totalDays = new Date(currentYear, currentMonth, 0).getDate();
   const startDayOfWeek = new Date(currentYear, currentMonth - 1, 1).getDay();
@@ -39,7 +41,7 @@ export default function TeacherCalendarPage() {
     e.preventDefault();
     if (!inputTitle.trim()) return alert("일정 제목을 입력해주세요.");
 
-    const targetClass = MOCK_TEACHER_CLASSES.find((c) => c.id === selectedClassId);
+    const targetClass = classes.find((c) => c.id === selectedClassId);
     if (!targetClass) return;
 
     const newEvent = {
@@ -146,7 +148,7 @@ export default function TeacherCalendarPage() {
                   value={selectedClassId}
                   onChange={(e) => setSelectedClassId(e.target.value)}
                 >
-                  {MOCK_TEACHER_CLASSES.map((c) => (
+                  {classes.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.class_name}
                     </option>

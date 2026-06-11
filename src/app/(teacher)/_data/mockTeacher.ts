@@ -181,6 +181,10 @@ export const MOCK_EVENTS: TeacherScheduleEvent[] = [
 ];
 
 export function formatRecordTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return "기록 없음";
+  }
+
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
 

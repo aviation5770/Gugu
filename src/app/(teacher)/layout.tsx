@@ -4,16 +4,17 @@ import React, { useState, useEffect } from "react";
 import TopNavbar from "./_components/TopNavbar";
 import LeftSidebar from "./_components/LeftSidebar";
 import * as S from "./layout.styles";
-import { MOCK_TEACHER_CLASSES } from "./_data/mockTeacher";
+import {
+  TeacherClassProvider,
+  useTeacherClasses,
+} from "./_context/TeacherClassContext";
 
-export default function TeacherLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function TeacherLayoutShell({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { classes } = useTeacherClasses();
   
   const teacherName = "어떻게 사람 이름이 정정자"; 
+  const teacherEmail = "teacher@gugu.kr";
 
   useEffect(() => {
     const handleResize = () => {
@@ -34,16 +35,29 @@ export default function TeacherLayout({
     <S.LayoutWrapper>
       <TopNavbar
         teacherName={teacherName}
+        teacherEmail={teacherEmail}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
       />
 
       <S.MainContainer>
-        <LeftSidebar isOpen={isSidebarOpen} classes={MOCK_TEACHER_CLASSES} />
+        <LeftSidebar isOpen={isSidebarOpen} classes={classes} />
 
         <S.ContentArea>
           {children}
         </S.ContentArea>
       </S.MainContainer>
     </S.LayoutWrapper>
+  );
+}
+
+export default function TeacherLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <TeacherClassProvider>
+      <TeacherLayoutShell>{children}</TeacherLayoutShell>
+    </TeacherClassProvider>
   );
 }
