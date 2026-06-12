@@ -19,6 +19,7 @@ export type TeacherClass = {
   profile_color: string;
   header_color: string;
   description: string;
+  created_at: string;
 };
 
 export type TeacherStudent = {
@@ -27,6 +28,8 @@ export type TeacherStudent = {
   student_number: number;
   name: string;
   birth_date: string;
+  password: string;
+  memo: string;
   accuracy: number;
   best_time: number;
   solved_count: number;
@@ -54,6 +57,7 @@ export const MOCK_TEACHER_CLASSES: TeacherClass[] = [
     profile_color: "#083B4D",
     header_color: "#9145D4",
     description: "자동 생성된 기본 클래스입니다. 학생 번호 1번부터 24번까지 배정되어 있습니다.",
+    created_at: "2026-05-20",
   },
   {
     id: "class-2",
@@ -67,6 +71,7 @@ export const MOCK_TEACHER_CLASSES: TeacherClass[] = [
     profile_color: "#9145D4",
     header_color: "#FA4541",
     description: "고학년 소수 구구단과 두 자릿수 곱셈을 함께 연습하는 클래스입니다.",
+    created_at: "2026-05-22",
   },
 ];
 
@@ -77,6 +82,8 @@ export const MOCK_STUDENTS: TeacherStudent[] = [
     student_number: 1,
     name: "김도윤",
     birth_date: "140101",
+    password: "0101",
+    memo: "곱셈 속도가 안정적입니다.",
     accuracy: 98,
     best_time: 74,
     solved_count: 86,
@@ -87,6 +94,8 @@ export const MOCK_STUDENTS: TeacherStudent[] = [
     student_number: 2,
     name: "이서연",
     birth_date: "140102",
+    password: "0102",
+    memo: "",
     accuracy: 94,
     best_time: 82,
     solved_count: 78,
@@ -97,6 +106,8 @@ export const MOCK_STUDENTS: TeacherStudent[] = [
     student_number: 3,
     name: "박민준",
     birth_date: "140103",
+    password: "0103",
+    memo: "현재 반 최고 기록 보유.",
     accuracy: 100,
     best_time: 58,
     solved_count: 104,
@@ -107,6 +118,8 @@ export const MOCK_STUDENTS: TeacherStudent[] = [
     student_number: 4,
     name: "최지우",
     birth_date: "140104",
+    password: "0104",
+    memo: "",
     accuracy: 91,
     best_time: 96,
     solved_count: 64,
@@ -117,6 +130,8 @@ export const MOCK_STUDENTS: TeacherStudent[] = [
     student_number: 5,
     name: "정하윤",
     birth_date: "140105",
+    password: "0105",
+    memo: "",
     accuracy: 89,
     best_time: 112,
     solved_count: 52,
@@ -127,6 +142,8 @@ export const MOCK_STUDENTS: TeacherStudent[] = [
     student_number: 1,
     name: "강서준",
     birth_date: "120301",
+    password: "0301",
+    memo: "",
     accuracy: 96,
     best_time: 69,
     solved_count: 92,
@@ -137,6 +154,8 @@ export const MOCK_STUDENTS: TeacherStudent[] = [
     student_number: 2,
     name: "윤지민",
     birth_date: "120302",
+    password: "0302",
+    memo: "장문제 집중도가 좋습니다.",
     accuracy: 100,
     best_time: 62,
     solved_count: 117,
@@ -147,6 +166,8 @@ export const MOCK_STUDENTS: TeacherStudent[] = [
     student_number: 3,
     name: "임하람",
     birth_date: "120303",
+    password: "0303",
+    memo: "",
     accuracy: 93,
     best_time: 88,
     solved_count: 73,

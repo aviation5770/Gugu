@@ -40,7 +40,7 @@ export const CardGrid = styled.div`
   }
 `;
 
-export const ClassCard = styled(Link)`
+export const ClassCard = styled.article`
   background-color: #ffffff;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
@@ -62,10 +62,18 @@ export const ClassCard = styled(Link)`
   }
 `;
 
+export const CardLink = styled(Link)`
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+`;
+
 export const CardHeader = styled.div<{ $bgColor: string }>`
   padding: 20px;
-  background-color: ${(props) =>
-    props.$bgColor}; /* 🔑 전달받은 단색을 배경색으로 지정 */
+  background-color: ${(props) => props.$bgColor};
   color: #ffffff;
   position: relative;
   height: 112px;
@@ -143,6 +151,7 @@ export const AlertText = styled.p`
 `;
 
 export const CardFooterToolbar = styled.div`
+  position: relative;
   padding: 12px 16px;
   background-color: rgba(249, 250, 251, 0.5);
   border-t: 1px solid #f3f4f6;
@@ -179,15 +188,56 @@ export const FooterButtonText = styled.span`
 export const MoreMenuButton = styled.button`
   background: none;
   border: none;
-  padding: 6px;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
   color: #4b5563;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 18px;
+  line-height: 1;
   cursor: pointer;
   transition: background-color 0.2s;
 
   &:hover {
     background-color: #f3f4f6;
+  }
+`;
+
+export const MoreMenu = styled.div`
+  position: absolute;
+  right: 14px;
+  bottom: 48px;
+  z-index: 5;
+  min-width: 132px;
+  padding: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background-color: #ffffff;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+`;
+
+export const MenuItemButton = styled.button`
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background-color: transparent;
+  color: #374151;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f9fafb;
+  }
+`;
+
+export const DeleteMenuButton = styled(MenuItemButton)`
+  color: #dc2626;
+
+  &:hover {
+    background-color: #fef2f2;
   }
 `;

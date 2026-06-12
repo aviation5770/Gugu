@@ -1,21 +1,16 @@
 "use client";
 
 import * as S from "./dashboard.styles";
-import {
-  formatRecordTime,
-  getClassRankings,
-  getStudentsByClass,
-  MOCK_EVENTS,
-} from "../../_data/mockTeacher";
+import { formatRecordTime } from "../../_data/mockTeacher";
 import { useTeacherClasses } from "../../_context/TeacherClassContext";
 
 export default function TeacherDashboardPage() {
-  const { classes } = useTeacherClasses();
+  const { classes, events, getRankings, getStudentsByClass } = useTeacherClasses();
   const totalStudents = classes.reduce(
     (sum, classItem) => sum + classItem.student_count,
     0,
   );
-  const allRankings = getClassRankings();
+  const allRankings = getRankings();
   const averageAccuracy =
     allRankings.length > 0
       ? Math.round(
@@ -101,7 +96,7 @@ export default function TeacherDashboardPage() {
         <S.Panel>
           <S.PanelTitle>다가오는 일정</S.PanelTitle>
           <S.EventList>
-            {MOCK_EVENTS.map((event) => (
+            {events.map((event) => (
               <S.EventItem key={event.id} href="/teacher/calendar" $color={event.color}>
                 <S.EventTitle>{event.title}</S.EventTitle>
                 <S.EventMeta>

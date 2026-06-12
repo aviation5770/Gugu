@@ -31,7 +31,8 @@ export const SidebarAside = styled.aside<{ $isOpen: boolean }>`
   justify-content: space-between;
   flex-shrink: 0;
   height: calc(100vh - 64px);
-  position: sticky;
+  position: fixed;
+  left: 0;
   top: 64px;
   overflow-y: auto;
   z-index: 40;
@@ -51,8 +52,6 @@ export const SidebarAside = styled.aside<{ $isOpen: boolean }>`
   `}
 
   @media (max-width: 1023px) {
-    position: fixed;
-    left: 0;
     box-shadow: ${(props) => (props.$isOpen ? "4px 0 24px rgba(0, 0, 0, 0.08)" : "none")};
     
     ${(props) =>

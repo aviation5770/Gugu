@@ -1,19 +1,22 @@
 "use client";
 
-import * as S from "./ranking.styles";
-import { formatRecordTime } from "../../_data/mockTeacher";
-import { useTeacherClasses } from "../../_context/TeacherClassContext";
+import { useParams } from "next/navigation";
+import * as S from "../../../ranking/ranking.styles";
+import { formatRecordTime } from "../../../../_data/mockTeacher";
+import { useTeacherClasses } from "../../../../_context/TeacherClassContext";
 
-export default function TeacherRankingPage() {
-  const { getRankings } = useTeacherClasses();
-  const rankings = getRankings();
+export default function ClassRankingPage() {
+  const params = useParams<{ classId: string }>();
+  const { classes, getRankings } = useTeacherClasses();
+  const classItem = classes.find((item) => item.id === params.classId);
+  const rankings = getRankings(params.classId);
 
   return (
     <S.RankingContainer>
       <S.PageHeader>
-        <S.Title>전체 랭킹 보드</S.Title>
+        <S.Title>{classItem ? `${classItem.class_name} 반 랭킹` : "반 랭킹"}</S.Title>
         <S.Description>
-          모든 클래스의 정답률과 최고 풀이 시간을 합산해 빠른 기록 순으로 보여줍니다.
+          이 클래스 학생들의 정답률과 최고 기록을 기준으로 순위를 보여줍니다.
         </S.Description>
       </S.PageHeader>
 

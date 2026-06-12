@@ -151,7 +151,51 @@ export const StudentRows = styled.div`
   gap: 10px;
 `;
 
-export const StudentRow = styled.div`
+export const StudentListHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  @media (max-width: 640px) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+`;
+
+export const PanelActions = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+export const UtilityButton = styled.button`
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  background-color: #ffffff;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f9fafb;
+  }
+`;
+
+export const DangerButton = styled(UtilityButton)`
+  color: #dc2626;
+
+  &:hover {
+    border-color: #fecaca;
+    background-color: #fef2f2;
+  }
+`;
+
+export const StudentRow = styled(Link)`
   display: grid;
   grid-template-columns: 44px minmax(120px, 1fr) 90px 90px;
   align-items: center;
@@ -160,6 +204,12 @@ export const StudentRow = styled.div`
   padding: 10px 12px;
   border-radius: 10px;
   background-color: #f9fafb;
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    background-color: #fffaf0;
+  }
 
   @media (max-width: 640px) {
     grid-template-columns: 44px 1fr;
@@ -222,4 +272,70 @@ export const QuickLink = styled(Link)`
 export const NotFoundPanel = styled(Panel)`
   text-align: center;
   padding: 48px 20px;
+`;
+
+export const SettingsForm = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+`;
+
+export const Label = styled.label`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 800;
+`;
+
+export const TextInput = styled.input`
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 9px;
+  color: #111827;
+  font-size: 14px;
+  outline: none;
+
+  &:focus {
+    border-color: #ffd165;
+    box-shadow: 0 0 0 3px rgba(255, 209, 101, 0.2);
+  }
+`;
+
+export const MetaList = styled.dl`
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+  padding: 14px;
+  border-radius: 10px;
+  background-color: #f9fafb;
+
+  div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  dt {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  dd {
+    color: #111827;
+    font-size: 12px;
+    font-weight: 800;
+  }
+`;
+
+export const SettingsDivider = styled.div`
+  height: 1px;
+  margin: 18px 0;
+  background-color: #f3f4f6;
 `;

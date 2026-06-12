@@ -1,11 +1,21 @@
 "use client";
 
-import React from "react";
+import { useState } from "react";
 import * as S from "./home.styles";
 import { useTeacherClasses } from "../../_context/TeacherClassContext";
 
 export default function TeacherDashboardPage() {
-  const { classes } = useTeacherClasses();
+  const { classes, deleteClass } = useTeacherClasses();
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  const handleDeleteClass = (classId: string, className: string) => {
+    if (!window.confirm(`${className} 클래스를 삭제하시겠습니까? 학생과 일정도 함께 삭제됩니다.`)) {
+      return;
+    }
+
+    deleteClass(classId);
+    setOpenMenuId(null);
+  };
 
   return (
     <S.DashboardContainer>
@@ -19,27 +29,45 @@ export default function TeacherDashboardPage() {
           const cardBgColor = item.header_color;
 
           return (
-            <S.ClassCard key={item.id} href={`/teacher/class/${item.id}`}>
-              <S.CardHeader $bgColor={cardBgColor}>
-                <S.ClassName>{item.class_name}</S.ClassName>
-                <S.TeacherName>{item.teacher_name} 선생님</S.TeacherName>
-                
-                <S.ClassProfileBadge $profileColor={item.profile_color}>
-                  {item.class_name.replace(/[^a-zA-Z0-9가-힣]/g, "").slice(0, 2)}
-                </S.ClassProfileBadge>
-              </S.CardHeader>
+            <S.ClassCard key={item.id}>
+              <S.CardLink href={`/teacher/class/${item.id}`}>
+                <S.CardHeader $bgColor={cardBgColor}>
+                  <S.ClassName>{item.class_name}</S.ClassName>
+                  <S.TeacherName>{item.teacher_name} 선생님</S.TeacherName>
 
-              <S.CardBody>
-                {item.todo_alert && (
-                  <S.AlertBox>
-                    <S.AlertLabel>⏳ 다가오는 일정</S.AlertLabel>
-                    <S.AlertText>{item.todo_alert}</S.AlertText>
-                  </S.AlertBox>
-                )}
-              </S.CardBody>
+                  <S.ClassProfileBadge $profileColor={item.profile_color}>
+                    {item.class_name.replace(/[^a-zA-Z0-9가-힣]/g, "").slice(0, 2)}
+                  </S.ClassProfileBadge>
+                </S.CardHeader>
+
+                <S.CardBody>
+                  {item.todo_alert && (
+                    <S.AlertBox>
+                      <S.AlertLabel>다가오는 일정</S.AlertLabel>
+                      <S.AlertText>{item.todo_alert}</S.AlertText>
+                    </S.AlertBox>
+                  )}
+                </S.CardBody>
+              </S.CardLink>
 
               <S.CardFooterToolbar>
-                <S.MoreMenuButton title="추가 옵션">⋮</S.MoreMenuButton>
+                <S.MoreMenuButton
+                  type="button"
+                  title="추가 옵션"
+                  onClick={() => setOpenMenuId((prev) => (prev === item.id ? null : item.id))}
+                >
+                  ⋮
+                </S.MoreMenuButton>
+                {openMenuId === item.id && (
+                  <S.MoreMenu>
+                    <S.DeleteMenuButton
+                      type="button"
+                      onClick={() => handleDeleteClass(item.id, item.class_name)}
+                    >
+                      클래스 삭제
+                    </S.DeleteMenuButton>
+                  </S.MoreMenu>
+                )}
               </S.CardFooterToolbar>
             </S.ClassCard>
           );

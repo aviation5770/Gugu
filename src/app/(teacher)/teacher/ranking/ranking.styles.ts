@@ -78,8 +78,13 @@ export const RankBadge = styled.span<{ $rank: number }>`
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  background-color: ${(props) => (props.$rank <= 3 ? "#ffd165" : "#f3f4f6")};
-  color: ${(props) => (props.$rank <= 3 ? "#514437" : "#4b5563")};
+  background-color: ${(props) => {
+    if (props.$rank === 1) return "#FFD165";
+    if (props.$rank === 2) return "#60C43E";
+    if (props.$rank === 3) return "#9145D4";
+    return "#f3f4f6";
+  }};
+  color: ${(props) => (props.$rank === 1 ? "#514437" : props.$rank <= 3 ? "#ffffff" : "#4b5563")};
   font-size: 13px;
   font-weight: 800;
 `;

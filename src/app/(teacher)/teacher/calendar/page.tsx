@@ -2,17 +2,14 @@
 
 import React, { useState } from "react";
 import * as S from "./calendar.styles";
-import { MOCK_EVENTS } from "../../_data/mockTeacher";
 import { useTeacherClasses } from "../../_context/TeacherClassContext";
 
 export default function TeacherCalendarPage() {
-  const { classes } = useTeacherClasses();
+  const { classes, events, addScheduleEvent, deleteScheduleEvent } = useTeacherClasses();
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(2026);
   const [currentMonth, setCurrentMonth] = useState(5);
   const [selectedDate, setSelectedDate] = useState("2026-05-28");
-
-  const [events, setEvents] = useState(MOCK_EVENTS);
   const [inputTitle, setInputTitle] = useState("");
   const [selectedClassId, setSelectedClassId] = useState(classes[0]?.id ?? "");
 
@@ -39,27 +36,28 @@ export default function TeacherCalendarPage() {
 
   const handleCreateEvent = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputTitle.trim()) return alert("일정 제목을 입력해주세요.");
+    if (!inputTitle.trim()) {
+      window.alert("일정 제목을 입력해주세요.");
+      return;
+    }
 
-    const targetClass = classes.find((c) => c.id === selectedClassId);
-    if (!targetClass) return;
-
-    const newEvent = {
-      id: `evt-${Date.now()}`,
-      class_id: targetClass.id,
-      class_name: targetClass.class_name,
+    const newEvent = addScheduleEvent({
+      classId: selectedClassId,
       title: inputTitle,
       date: selectedDate,
-      color: targetClass.header_color,
-    };
+    });
 
-    setEvents([...events, newEvent]);
+    if (!newEvent) {
+      window.alert("대상 클래스와 일정 제목을 확인해 주세요.");
+      return;
+    }
+
     setInputTitle("");
   };
 
   const handleDeleteEvent = (id: string) => {
     if (confirm("이 일정을 삭제하시겠습니까?")) {
-      setEvents(events.filter((evt) => evt.id !== id));
+      deleteScheduleEvent(id);
     }
   };
 

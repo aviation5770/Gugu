@@ -40,9 +40,13 @@ function TeacherLayoutShell({ children }: { children: React.ReactNode }) {
       />
 
       <S.MainContainer>
-        <LeftSidebar isOpen={isSidebarOpen} classes={classes} />
+        <LeftSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          classes={classes}
+        />
 
-        <S.ContentArea>
+        <S.ContentArea $isSidebarOpen={isSidebarOpen}>
           {children}
         </S.ContentArea>
       </S.MainContainer>
