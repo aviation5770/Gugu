@@ -26,6 +26,16 @@ interface TeacherLoginInput {
   password: string;
 }
 
+interface TeacherProfileInput {
+  name: string;
+  email: string;
+  profileImageUrl?: string;
+}
+
+interface PasswordResetInput {
+  email: string;
+}
+
 interface StudentCodeInput {
   code: string;
 }
@@ -40,6 +50,7 @@ interface TeacherSession {
   id: string;
   email: string | null;
   name: string;
+  profileImageUrl?: string | null;
 }
 
 interface ClassSummary {
@@ -70,6 +81,12 @@ type StudentRow = {
   class_id: string;
   student_number: number | null;
   birth_date: string | null;
+};
+
+type TeacherProfileRow = {
+  name: string;
+  email: string;
+  profile_image_url: string | null;
 };
 
 const STUDENT_SESSION_COOKIE = "gugu_student_session";
@@ -128,8 +145,43 @@ function toClassSummary(classRow: ClassRow): ClassSummary {
   };
 }
 
+async function getWritableClient() {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return createAdminClient();
+  }
+
+  return createClient();
+}
+
+async function upsertTeacherProfile({
+  id,
+  email,
+  name,
+  profileImageUrl,
+}: {
+  id: string;
+  email: string;
+  name: string;
+  profileImageUrl?: string | null;
+}) {
+  const db = await getWritableClient();
+  const { error } = await db.from("teachers").upsert(
+    {
+      id,
+      email,
+      name,
+      profile_image_url: profileImageUrl ?? null,
+    },
+    { onConflict: "id" },
+  );
+
+  if (error) {
+    throw new Error(`선생님 정보 저장 실패: ${error.message}`);
+  }
+}
+
 async function findClassByCode(code: string) {
-  const supabase = await createClient();
+  const supabase = await getWritableClient();
   const normalizedCode = normalizeClassCode(code);
   const { data, error } = await supabase
     .from("classes")
@@ -166,7 +218,7 @@ export async function teacherSignupAction({
       throw new Error("비밀번호가 일치하지 않습니다.");
     }
 
-    const supabase = await createClient();
+    const supabase = await getWritableClient();
 
     // [1단계] Supabase Auth(인증 시스템)에 계정 생성
     const { data, error } = await supabase.auth.signUp({
@@ -188,21 +240,11 @@ export async function teacherSignupAction({
       throw new Error("회원가입 결과를 확인할 수 없습니다.");
     }
 
-    const profileSupabase = process.env.SUPABASE_SERVICE_ROLE_KEY
-      ? await createAdminClient()
-      : supabase;
-    const { error: profileError } = await profileSupabase.from("teachers").upsert(
-      {
-        id: data.user.id,
-        email: normalizedEmail,
-        name: normalizedName,
-      },
-      { onConflict: "id" },
-    );
-
-    if (profileError) {
-      throw new Error(`선생님 정보 저장 실패: ${profileError.message}`);
-    }
+    await upsertTeacherProfile({
+      id: data.user.id,
+      email: normalizedEmail,
+      name: normalizedName,
+    });
 
     return {
       success: true,
@@ -242,16 +284,17 @@ export async function teacherLoginAction({
 
     const { data: profile } = await supabase
       .from("teachers")
-      .select("name")
+      .select("name, email, profile_image_url")
       .eq("id", data.user.id)
-      .maybeSingle<{ name: string }>();
+      .maybeSingle<TeacherProfileRow>();
 
     return {
       success: true,
       data: {
         id: data.user.id,
-        email: data.user.email ?? null,
+        email: profile?.email ?? data.user.email ?? null,
         name: profile?.name ?? String(data.user.user_metadata?.name ?? ""),
+        profileImageUrl: profile?.profile_image_url ?? null,
       },
     };
   } catch (error) {
@@ -276,6 +319,122 @@ export async function teacherLogoutAction(): Promise<ActionResult<null>> {
   }
 }
 
+export async function requestTeacherPasswordResetAction({
+  email,
+}: PasswordResetInput): Promise<ActionResult<null>> {
+  try {
+    const normalizedEmail = normalizeRequiredText(email, "이메일").toLowerCase();
+    const supabase = await createClient();
+    const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/login/teacher`;
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return { success: true, data: null };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+export async function updateTeacherProfileAction({
+  name,
+  email,
+  profileImageUrl,
+}: TeacherProfileInput): Promise<ActionResult<TeacherSession>> {
+  try {
+    const normalizedName = normalizeRequiredText(name, "이름");
+    const normalizedEmail = normalizeRequiredText(email, "이메일").toLowerCase();
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getUser();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data.user) {
+      throw new Error("로그인이 필요합니다.");
+    }
+
+    if (data.user.email !== normalizedEmail) {
+      const { error: updateEmailError } = await supabase.auth.updateUser({
+        email: normalizedEmail,
+      });
+
+      if (updateEmailError) {
+        throw new Error(updateEmailError.message);
+      }
+    }
+
+    await upsertTeacherProfile({
+      id: data.user.id,
+      email: normalizedEmail,
+      name: normalizedName,
+      profileImageUrl: profileImageUrl?.trim() || null,
+    });
+
+    revalidatePath("/teacher/home");
+    revalidatePath("/teacher/dashboard");
+
+    return {
+      success: true,
+      data: {
+        id: data.user.id,
+        email: normalizedEmail,
+        name: normalizedName,
+        profileImageUrl: profileImageUrl?.trim() || null,
+      },
+    };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+export async function deleteTeacherAccountAction(): Promise<ActionResult<null>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getUser();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data.user) {
+      throw new Error("로그인이 필요합니다.");
+    }
+
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("계정 삭제에는 SUPABASE_SERVICE_ROLE_KEY 환경 변수가 필요합니다.");
+    }
+
+    const admin = await createAdminClient();
+    const { error: profileError } = await admin
+      .from("teachers")
+      .delete()
+      .eq("id", data.user.id);
+
+    if (profileError) {
+      throw new Error(profileError.message);
+    }
+
+    const { error: deleteUserError } = await admin.auth.admin.deleteUser(data.user.id);
+
+    if (deleteUserError) {
+      throw new Error(deleteUserError.message);
+    }
+
+    await supabase.auth.signOut();
+    revalidatePath("/");
+
+    return { success: true, data: null };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
 export async function getTeacherSessionAction(): Promise<ActionResult<TeacherSession | null>> {
   try {
     const supabase = await createClient();
@@ -291,16 +450,17 @@ export async function getTeacherSessionAction(): Promise<ActionResult<TeacherSes
 
     const { data: profile } = await supabase
       .from("teachers")
-      .select("name")
+      .select("name, email, profile_image_url")
       .eq("id", data.user.id)
-      .maybeSingle<{ name: string }>();
+      .maybeSingle<TeacherProfileRow>();
 
     return {
       success: true,
       data: {
         id: data.user.id,
-        email: data.user.email ?? null,
+        email: profile?.email ?? data.user.email ?? null,
         name: profile?.name ?? String(data.user.user_metadata?.name ?? ""),
+        profileImageUrl: profile?.profile_image_url ?? null,
       },
     };
   } catch (error) {

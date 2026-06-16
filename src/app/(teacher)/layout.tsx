@@ -13,8 +13,9 @@ import { getTeacherSessionAction } from "@/app/actions/auth";
 function TeacherLayoutShell({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [teacherProfile, setTeacherProfile] = useState({
-    name: "구구쌤",
-    email: "teacher@gugu.kr",
+    name: "선생님",
+    email: "",
+    profileImageUrl: null as string | null,
   });
   const { classes } = useTeacherClasses();
 
@@ -44,8 +45,9 @@ function TeacherLayoutShell({ children }: { children: React.ReactNode }) {
       }
 
       setTeacherProfile({
-        name: result.data.name || "구구쌤",
-        email: result.data.email ?? "teacher@gugu.kr",
+        name: result.data.name || "선생님",
+        email: result.data.email ?? "",
+        profileImageUrl: result.data.profileImageUrl ?? null,
       });
     }
 
@@ -61,7 +63,15 @@ function TeacherLayoutShell({ children }: { children: React.ReactNode }) {
       <TopNavbar
         teacherName={teacherProfile.name}
         teacherEmail={teacherProfile.email}
+        teacherProfileImageUrl={teacherProfile.profileImageUrl}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        onProfileChange={(profile) =>
+          setTeacherProfile({
+            name: profile.name,
+            email: profile.email,
+            profileImageUrl: profile.profileImageUrl ?? null,
+          })
+        }
       />
 
       <S.MainContainer>

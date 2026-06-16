@@ -40,6 +40,16 @@ export const CardGrid = styled.div`
   }
 `;
 
+export const EmptyState = styled.div`
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background-color: #ffffff;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 700;
+`;
+
 export const ClassCard = styled.article`
   background-color: #ffffff;
   border-radius: 12px;

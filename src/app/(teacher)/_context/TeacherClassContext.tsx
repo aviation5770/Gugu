@@ -11,8 +11,10 @@ import {
 import type { ReactNode } from "react";
 import {
   addStudentAction,
+  createScheduleAction,
   createClassAction,
   deleteClassAction,
+  deleteScheduleAction,
   deleteStudentAction,
   loadTeacherWorkspaceAction,
   updateClassNameAction,
@@ -20,15 +22,10 @@ import {
 } from "@/app/actions/class";
 import {
   CLASS_THEME_COLORS,
-  MOCK_EVENTS,
-  MOCK_TEACHER_CLASSES,
-  MOCK_STUDENTS,
   type TeacherClass,
   type TeacherScheduleEvent,
   type TeacherStudent,
 } from "../_data/mockTeacher";
-
-const EVENT_STORAGE_KEY = "gugu_teacher_events";
 
 type CreateTeacherClassInput = {
   grade: string;
@@ -40,6 +37,8 @@ type CreateScheduleEventInput = {
   classId: string;
   title: string;
   date: string;
+  startTime?: string;
+  endTime?: string;
 };
 
 type TeacherClassContextValue = {
@@ -98,41 +97,6 @@ function getBirthdayPassword(birthDate: string) {
   return digits;
 }
 
-function readStoredEvents() {
-  if (typeof window === "undefined") {
-    return MOCK_EVENTS;
-  }
-
-  try {
-    const stored = window.localStorage.getItem(EVENT_STORAGE_KEY);
-
-    if (!stored) {
-      return MOCK_EVENTS;
-    }
-
-    const parsed = JSON.parse(stored) as TeacherScheduleEvent[];
-
-    if (!Array.isArray(parsed)) {
-      return MOCK_EVENTS;
-    }
-
-    return parsed;
-  } catch {
-    return MOCK_EVENTS;
-  }
-}
-
-function createLocalEvent(input: CreateScheduleEventInput, classItem: TeacherClass) {
-  return {
-    id: `evt-${Date.now()}`,
-    class_id: classItem.id,
-    class_name: classItem.class_name,
-    title: input.title.trim(),
-    date: input.date,
-    color: classItem.header_color,
-  };
-}
-
 function createOptimisticClass(input: CreateTeacherClassInput): TeacherClass {
   const grade = safeNumber(input.grade, 1);
   const room = safeNumber(input.room, 1);
@@ -143,7 +107,7 @@ function createOptimisticClass(input: CreateTeacherClassInput): TeacherClass {
     class_name: `${grade}학년 ${room}반`,
     grade,
     room,
-    teacher_name: "구구쌤",
+    teacher_name: "선생님",
     class_code: "생성 중",
     student_count: studentCount,
     todo_alert: "캘린더에서 다음 시험 일정을 등록해 주세요",
@@ -155,9 +119,9 @@ function createOptimisticClass(input: CreateTeacherClassInput): TeacherClass {
 }
 
 export function TeacherClassProvider({ children }: { children: ReactNode }) {
-  const [classes, setClasses] = useState<TeacherClass[]>(MOCK_TEACHER_CLASSES);
-  const [students, setStudents] = useState<TeacherStudent[]>(MOCK_STUDENTS);
-  const [events, setEvents] = useState<TeacherScheduleEvent[]>(() => readStoredEvents());
+  const [classes, setClasses] = useState<TeacherClass[]>([]);
+  const [students, setStudents] = useState<TeacherStudent[]>([]);
+  const [events, setEvents] = useState<TeacherScheduleEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -190,10 +154,6 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
       isMounted = false;
     };
   }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem(EVENT_STORAGE_KEY, JSON.stringify(events));
-  }, [events]);
 
   const addClass = useCallback(async (input: CreateTeacherClassInput) => {
     const optimisticClass = createOptimisticClass(input);
@@ -323,7 +283,9 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
       const nextBirthDate = input.birth_date ?? targetStudent?.birth_date ?? "";
       const result = await updateStudentAction({
         studentId,
+        name: input.name ?? targetStudent?.name ?? "",
         birthDate: nextBirthDate,
+        memo: input.memo ?? targetStudent?.memo ?? "",
       });
 
       if (!result.success) {
@@ -410,8 +372,36 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
         return null;
       }
 
-      const event = createLocalEvent(input, classItem);
+      const startsAt = `${input.date}T${input.startTime || "09:00"}:00+09:00`;
+      const endsAt = `${input.date}T${input.endTime || "10:00"}:00+09:00`;
+      const event: TeacherScheduleEvent = {
+        id: `pending-${Date.now()}`,
+        class_id: classItem.id,
+        class_name: classItem.class_name,
+        title,
+        date: input.date,
+        starts_at: startsAt,
+        ends_at: endsAt,
+        color: classItem.header_color,
+      };
+
       setEvents((prev) => [...prev, event]);
+      createScheduleAction({
+        classId: classItem.id,
+        title,
+        startsAt,
+        endsAt,
+      }).then((result) => {
+        if (!result.success) {
+          setEvents((prev) => prev.filter((item) => item.id !== event.id));
+          window.alert(result.error);
+          return;
+        }
+
+        setEvents((prev) =>
+          prev.map((item) => (item.id === event.id ? result.data : item)),
+        );
+      });
 
       return event;
     },
@@ -420,6 +410,11 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
 
   const deleteScheduleEvent = useCallback((eventId: string) => {
     setEvents((prev) => prev.filter((event) => event.id !== eventId));
+    deleteScheduleAction(eventId).then((result) => {
+      if (!result.success) {
+        window.alert(result.error);
+      }
+    });
   }, []);
 
   const getEventsByClass = useCallback(

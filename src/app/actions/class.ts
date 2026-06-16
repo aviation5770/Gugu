@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient, createClient } from "@/utils/supabase/server";
 import type {
   TeacherClass,
   TeacherScheduleEvent,
@@ -32,7 +32,26 @@ type StudentRow = {
   class_id: string;
   created_at: string;
   student_number: number;
+  name: string | null;
   birth_date: string | null;
+  memo: string | null;
+  profile_image_url: string | null;
+};
+
+type TeacherRow = {
+  id: string;
+  email: string;
+  name: string;
+  profile_image_url: string | null;
+};
+
+type ExamScheduleRow = {
+  id: string;
+  class_id: string;
+  title: string;
+  starts_at: string;
+  ends_at: string;
+  created_at: string;
 };
 
 type CreateClassInput = {
@@ -51,7 +70,17 @@ type AddStudentInput = {
 
 type UpdateStudentInput = {
   studentId: string;
+  name: string;
   birthDate: string;
+  memo: string;
+  profileImageUrl?: string;
+};
+
+type CreateScheduleInput = {
+  classId: string;
+  title: string;
+  startsAt: string;
+  endsAt: string;
 };
 
 export type TeacherWorkspace = {
@@ -136,7 +165,26 @@ function colorForId(id: string, offset = 0) {
   return CLASS_THEME_COLORS[seed % CLASS_THEME_COLORS.length];
 }
 
-function toTeacherClass(row: ClassRow): TeacherClass {
+async function getWritableClient() {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return createAdminClient();
+  }
+
+  return createClient();
+}
+
+async function getTeacherProfile(teacherId: string) {
+  const supabase = await getWritableClient();
+  const { data } = await supabase
+    .from("teachers")
+    .select("id, email, name, profile_image_url")
+    .eq("id", teacherId)
+    .maybeSingle<TeacherRow>();
+
+  return data;
+}
+
+function toTeacherClass(row: ClassRow, teacherName: string): TeacherClass {
   const { grade, room } = extractGradeRoom(row.class_name);
 
   return {
@@ -144,7 +192,7 @@ function toTeacherClass(row: ClassRow): TeacherClass {
     class_name: row.class_name,
     grade,
     room,
-    teacher_name: "구구쌤",
+    teacher_name: teacherName,
     class_code: row.class_code,
     student_count: row.student_count,
     todo_alert: "캘린더에서 다음 시험 일정을 등록해 주세요",
@@ -160,13 +208,26 @@ function toTeacherStudent(row: StudentRow): TeacherStudent {
     id: row.id,
     class_id: row.class_id,
     student_number: row.student_number,
-    name: `${row.student_number}번 학생`,
+    name: row.name ?? `${row.student_number}번 학생`,
     birth_date: row.birth_date ?? "",
     password: getBirthdayPassword(row.birth_date),
-    memo: "",
+    memo: row.memo ?? "",
     accuracy: 0,
     best_time: 0,
     solved_count: 0,
+  };
+}
+
+function toTeacherScheduleEvent(row: ExamScheduleRow, classItem: TeacherClass): TeacherScheduleEvent {
+  return {
+    id: row.id,
+    class_id: row.class_id,
+    class_name: classItem.class_name,
+    title: row.title,
+    date: row.starts_at.slice(0, 10),
+    starts_at: row.starts_at,
+    ends_at: row.ends_at,
+    color: classItem.header_color,
   };
 }
 
@@ -186,8 +247,9 @@ async function getTeacherId() {
 }
 
 async function assertTeacherOwnsClass(classId: string) {
-  const { supabase, teacherId } = await getTeacherId();
-  const { data: classRow, error } = await supabase
+  const { teacherId } = await getTeacherId();
+  const db = await getWritableClient();
+  const { data: classRow, error } = await db
     .from("classes")
     .select("id, class_name, class_code, created_at, student_count, teacher_id")
     .eq("id", classId)
@@ -202,13 +264,16 @@ async function assertTeacherOwnsClass(classId: string) {
     throw new Error("수업을 찾을 수 없습니다.");
   }
 
-  return { supabase, teacherId, classRow };
+  return { supabase: db, teacherId, classRow };
 }
 
 export async function loadTeacherWorkspaceAction(): Promise<ActionResult<TeacherWorkspace>> {
   try {
-    const { supabase, teacherId } = await getTeacherId();
-    const { data: classRows, error: classError } = await supabase
+    const { teacherId } = await getTeacherId();
+    const db = await getWritableClient();
+    const profile = await getTeacherProfile(teacherId);
+    const teacherName = profile?.name ?? "선생님";
+    const { data: classRows, error: classError } = await db
       .from("classes")
       .select("id, class_name, class_code, created_at, student_count, teacher_id")
       .eq("teacher_id", teacherId)
@@ -221,9 +286,9 @@ export async function loadTeacherWorkspaceAction(): Promise<ActionResult<Teacher
 
     const classIds = classRows.map((classRow) => classRow.id);
     const { data: studentRows, error: studentError } = classIds.length
-      ? await supabase
+      ? await db
           .from("students")
-          .select("id, class_id, created_at, student_number, birth_date")
+          .select("id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url")
           .in("class_id", classIds)
           .order("student_number", { ascending: true })
           .returns<StudentRow[]>()
@@ -233,12 +298,32 @@ export async function loadTeacherWorkspaceAction(): Promise<ActionResult<Teacher
       throw new Error(studentError.message);
     }
 
+    const mappedClasses = classRows.map((classRow) => toTeacherClass(classRow, teacherName));
+    const { data: scheduleRows, error: scheduleError } = classIds.length
+      ? await db
+          .from("exam_schedules")
+          .select("id, class_id, title, starts_at, ends_at, created_at")
+          .in("class_id", classIds)
+          .order("starts_at", { ascending: true })
+          .returns<ExamScheduleRow[]>()
+      : { data: [] as ExamScheduleRow[], error: null };
+
+    if (scheduleError) {
+      throw new Error(
+        `시험 일정 테이블을 확인해 주세요: ${scheduleError.message}`,
+      );
+    }
+
     return {
       success: true,
       data: {
-        classes: classRows.map(toTeacherClass),
+        classes: mappedClasses,
         students: studentRows.map(toTeacherStudent),
-        events: [],
+        events: scheduleRows.flatMap((row) => {
+          const classItem = mappedClasses.find((item) => item.id === row.class_id);
+
+          return classItem ? [toTeacherScheduleEvent(row, classItem)] : [];
+        }),
       },
     };
   } catch (error) {
@@ -253,9 +338,11 @@ export async function createClassAction({
   try {
     const normalizedClassName = normalizeRequiredText(className, "클래스 이름");
     const normalizedStudentCount = safePositiveInteger(studentCount, 1);
-    const { supabase, teacherId } = await getTeacherId();
+    const { teacherId } = await getTeacherId();
+    const db = await getWritableClient();
+    const profile = await getTeacherProfile(teacherId);
     const classCode = createClassCode();
-    const { data: classData, error: classError } = await supabase
+    const { data: classData, error: classError } = await db
       .from("classes")
       .insert({
         class_name: normalizedClassName,
@@ -273,12 +360,15 @@ export async function createClassAction({
     const studentRows = Array.from({ length: normalizedStudentCount }, (_, index) => ({
       class_id: classData.id,
       student_number: index + 1,
+      name: `${index + 1}번 학생`,
       birth_date: null,
+      memo: null,
+      profile_image_url: null,
     }));
-    const { data: createdStudents, error: studentError } = await supabase
+    const { data: createdStudents, error: studentError } = await db
       .from("students")
       .insert(studentRows)
-      .select("id, class_id, created_at, student_number, birth_date")
+      .select("id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url")
       .returns<StudentRow[]>();
 
     if (studentError) {
@@ -291,7 +381,7 @@ export async function createClassAction({
     return {
       success: true,
       data: {
-        classItem: toTeacherClass(classData),
+        classItem: toTeacherClass(classData, profile?.name ?? "선생님"),
         students: createdStudents.map(toTeacherStudent),
       },
     };
@@ -306,8 +396,10 @@ export async function updateClassNameAction({
 }: UpdateClassNameInput): Promise<ActionResult<TeacherClass>> {
   try {
     const normalizedClassName = normalizeRequiredText(className, "클래스 이름");
-    const { supabase, teacherId } = await getTeacherId();
-    const { data, error } = await supabase
+    const { teacherId } = await getTeacherId();
+    const db = await getWritableClient();
+    const profile = await getTeacherProfile(teacherId);
+    const { data, error } = await db
       .from("classes")
       .update({ class_name: normalizedClassName })
       .eq("id", classId)
@@ -322,7 +414,7 @@ export async function updateClassNameAction({
     revalidatePath("/teacher/home");
     revalidatePath(`/teacher/class/${classId}`);
 
-    return { success: true, data: toTeacherClass(data) };
+    return { success: true, data: toTeacherClass(data, profile?.name ?? "선생님") };
   } catch (error) {
     return { success: false, error: getErrorMessage(error) };
   }
@@ -330,17 +422,9 @@ export async function updateClassNameAction({
 
 export async function deleteClassAction(classId: string): Promise<ActionResult<null>> {
   try {
-    const { supabase, teacherId } = await getTeacherId();
-    const { error: studentError } = await supabase
-      .from("students")
-      .delete()
-      .eq("class_id", classId);
-
-    if (studentError) {
-      throw new Error(studentError.message);
-    }
-
-    const { error: classError } = await supabase
+    const { teacherId } = await getTeacherId();
+    const db = await getWritableClient();
+    const { error: classError } = await db
       .from("classes")
       .delete()
       .eq("id", classId)
@@ -382,9 +466,12 @@ export async function addStudentAction({
       .insert({
         class_id: classId,
         student_number: nextStudentNumber,
+        name: `${nextStudentNumber}번 학생`,
         birth_date: null,
+        memo: null,
+        profile_image_url: null,
       })
-      .select("id, class_id, created_at, student_number, birth_date")
+      .select("id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url")
       .single<StudentRow>();
 
     if (studentError) {
@@ -410,13 +497,17 @@ export async function addStudentAction({
 
 export async function updateStudentAction({
   studentId,
+  name,
   birthDate,
+  memo,
+  profileImageUrl,
 }: UpdateStudentInput): Promise<ActionResult<TeacherStudent>> {
   try {
-    const { supabase, teacherId } = await getTeacherId();
-    const { data: currentStudent, error: currentStudentError } = await supabase
+    const { teacherId } = await getTeacherId();
+    const db = await getWritableClient();
+    const { data: currentStudent, error: currentStudentError } = await db
       .from("students")
-      .select("id, class_id, created_at, student_number, birth_date")
+      .select("id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url")
       .eq("id", studentId)
       .maybeSingle<StudentRow>();
 
@@ -428,7 +519,7 @@ export async function updateStudentAction({
       throw new Error("학생 정보를 찾을 수 없습니다.");
     }
 
-    const { data: classRow, error: classError } = await supabase
+    const { data: classRow, error: classError } = await db
       .from("classes")
       .select("id")
       .eq("id", currentStudent.class_id)
@@ -443,11 +534,16 @@ export async function updateStudentAction({
       throw new Error("학생을 수정할 권한이 없습니다.");
     }
 
-    const { data: student, error: updateError } = await supabase
+    const { data: student, error: updateError } = await db
       .from("students")
-      .update({ birth_date: birthDate.trim() || null })
+      .update({
+        name: name.trim() || `${currentStudent.student_number}번 학생`,
+        birth_date: birthDate.trim() || null,
+        memo: memo.trim() || null,
+        profile_image_url: profileImageUrl?.trim() || null,
+      })
       .eq("id", studentId)
-      .select("id, class_id, created_at, student_number, birth_date")
+      .select("id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url")
       .single<StudentRow>();
 
     if (updateError) {
@@ -464,8 +560,9 @@ export async function updateStudentAction({
 
 export async function deleteStudentAction(studentId: string): Promise<ActionResult<null>> {
   try {
-    const { supabase, teacherId } = await getTeacherId();
-    const { data: student, error: studentError } = await supabase
+    const { teacherId } = await getTeacherId();
+    const db = await getWritableClient();
+    const { data: student, error: studentError } = await db
       .from("students")
       .select("id, class_id")
       .eq("id", studentId)
@@ -479,7 +576,7 @@ export async function deleteStudentAction(studentId: string): Promise<ActionResu
       throw new Error("학생 정보를 찾을 수 없습니다.");
     }
 
-    const { data: classRow, error: classError } = await supabase
+    const { data: classRow, error: classError } = await db
       .from("classes")
       .select("id, student_count")
       .eq("id", student.class_id)
@@ -494,7 +591,7 @@ export async function deleteStudentAction(studentId: string): Promise<ActionResu
       throw new Error("학생을 삭제할 권한이 없습니다.");
     }
 
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await db
       .from("students")
       .delete()
       .eq("id", studentId);
@@ -503,7 +600,7 @@ export async function deleteStudentAction(studentId: string): Promise<ActionResu
       throw new Error(deleteError.message);
     }
 
-    const { error: countError } = await supabase
+    const { error: countError } = await db
       .from("classes")
       .update({ student_count: Math.max(0, classRow.student_count - 1) })
       .eq("id", student.class_id);
@@ -513,6 +610,89 @@ export async function deleteStudentAction(studentId: string): Promise<ActionResu
     }
 
     revalidatePath(`/teacher/class/${student.class_id}`);
+
+    return { success: true, data: null };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+export async function createScheduleAction({
+  classId,
+  title,
+  startsAt,
+  endsAt,
+}: CreateScheduleInput): Promise<ActionResult<TeacherScheduleEvent>> {
+  try {
+    const normalizedTitle = normalizeRequiredText(title, "시험 제목");
+    const { supabase, classRow } = await assertTeacherOwnsClass(classId);
+    const profile = await getTeacherProfile(classRow.teacher_id ?? "");
+    const classItem = toTeacherClass(classRow, profile?.name ?? "선생님");
+    const { data, error } = await supabase
+      .from("exam_schedules")
+      .insert({
+        class_id: classId,
+        title: normalizedTitle,
+        starts_at: startsAt,
+        ends_at: endsAt,
+      })
+      .select("id, class_id, title, starts_at, ends_at, created_at")
+      .single<ExamScheduleRow>();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    revalidatePath("/teacher/calendar");
+    revalidatePath(`/teacher/class/${classId}`);
+
+    return { success: true, data: toTeacherScheduleEvent(data, classItem) };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+export async function deleteScheduleAction(scheduleId: string): Promise<ActionResult<null>> {
+  try {
+    const { teacherId } = await getTeacherId();
+    const db = await getWritableClient();
+    const { data: schedule, error: scheduleError } = await db
+      .from("exam_schedules")
+      .select("id, class_id")
+      .eq("id", scheduleId)
+      .maybeSingle<{ id: string; class_id: string }>();
+
+    if (scheduleError) {
+      throw new Error(scheduleError.message);
+    }
+
+    if (!schedule) {
+      throw new Error("시험 일정을 찾을 수 없습니다.");
+    }
+
+    const { data: classRow, error: classError } = await db
+      .from("classes")
+      .select("id")
+      .eq("id", schedule.class_id)
+      .eq("teacher_id", teacherId)
+      .maybeSingle<{ id: string }>();
+
+    if (classError) {
+      throw new Error(classError.message);
+    }
+
+    if (!classRow) {
+      throw new Error("시험 일정을 삭제할 권한이 없습니다.");
+    }
+
+    const { error } = await db.from("exam_schedules").delete().eq("id", scheduleId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    revalidatePath("/teacher/calendar");
+    revalidatePath(`/teacher/class/${schedule.class_id}`);
 
     return { success: true, data: null };
   } catch (error) {

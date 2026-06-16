@@ -5,7 +5,7 @@ import * as S from "./home.styles";
 import { useTeacherClasses } from "../../_context/TeacherClassContext";
 
 export default function TeacherDashboardPage() {
-  const { classes, deleteClass } = useTeacherClasses();
+  const { classes, deleteClass, isLoading, loadError } = useTeacherClasses();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const handleDeleteClass = async (classId: string, className: string) => {
@@ -23,6 +23,12 @@ export default function TeacherDashboardPage() {
         <S.PageTitle>참여 중인 수업 목록</S.PageTitle>
         <S.PageDescription>초대받은 수업은 [게스트]로 표시됩니다.</S.PageDescription>
       </S.HeaderTitleSection>
+
+      {isLoading ? <S.EmptyState>수업 정보를 불러오는 중입니다.</S.EmptyState> : null}
+      {loadError ? <S.EmptyState>{loadError}</S.EmptyState> : null}
+      {!isLoading && !loadError && classes.length === 0 ? (
+        <S.EmptyState>아직 생성된 수업이 없습니다. 상단 + 버튼으로 수업을 생성해 주세요.</S.EmptyState>
+      ) : null}
 
       <S.CardGrid>
         {classes.map((item) => {

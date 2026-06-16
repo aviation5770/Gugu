@@ -7,11 +7,15 @@ import { useTeacherClasses } from "../../_context/TeacherClassContext";
 export default function TeacherCalendarPage() {
   const { classes, events, addScheduleEvent, deleteScheduleEvent } = useTeacherClasses();
   const today = new Date();
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(5);
-  const [selectedDate, setSelectedDate] = useState("2026-05-28");
+  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
+  const [selectedDate, setSelectedDate] = useState(todayString);
   const [inputTitle, setInputTitle] = useState("");
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("10:00");
   const [selectedClassId, setSelectedClassId] = useState(classes[0]?.id ?? "");
+  const activeSelectedClassId = selectedClassId || classes[0]?.id || "";
 
   const totalDays = new Date(currentYear, currentMonth, 0).getDate();
   const startDayOfWeek = new Date(currentYear, currentMonth - 1, 1).getDay();
@@ -42,9 +46,11 @@ export default function TeacherCalendarPage() {
     }
 
     const newEvent = addScheduleEvent({
-      classId: selectedClassId,
+      classId: activeSelectedClassId,
       title: inputTitle,
       date: selectedDate,
+      startTime,
+      endTime,
     });
 
     if (!newEvent) {
@@ -143,7 +149,7 @@ export default function TeacherCalendarPage() {
               <S.FormGroup>
                 <S.Label>대상 클래스 선택</S.Label>
                 <S.Select
-                  value={selectedClassId}
+                  value={activeSelectedClassId}
                   onChange={(e) => setSelectedClassId(e.target.value)}
                 >
                   {classes.map((c) => (
@@ -164,6 +170,25 @@ export default function TeacherCalendarPage() {
                 />
               </S.FormGroup>
 
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <S.FormGroup>
+                  <S.Label>시작 시간</S.Label>
+                  <S.Input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                  />
+                </S.FormGroup>
+                <S.FormGroup>
+                  <S.Label>종료 시간</S.Label>
+                  <S.Input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                  />
+                </S.FormGroup>
+              </div>
+
               <S.SubmitButton type="submit">일정 등록하기</S.SubmitButton>
             </form>
           </S.FormCard>
@@ -178,7 +203,12 @@ export default function TeacherCalendarPage() {
                   <S.EventItem key={evt.id} $color={evt.color}>
                     <S.EventInfo>
                       <S.EventTitleText>{evt.title}</S.EventTitleText>
-                      <S.EventClassTag>{evt.class_name}</S.EventClassTag>
+                      <S.EventClassTag>
+                        {evt.class_name}
+                        {evt.starts_at && evt.ends_at
+                          ? ` · ${evt.starts_at.slice(11, 16)}-${evt.ends_at.slice(11, 16)}`
+                          : ""}
+                      </S.EventClassTag>
                     </S.EventInfo>
                     <S.DeleteButton 
                       onClick={() => handleDeleteEvent(evt.id)}

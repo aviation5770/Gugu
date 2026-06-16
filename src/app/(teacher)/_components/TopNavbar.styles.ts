@@ -144,12 +144,15 @@ export const ProfilePanel = styled.div`
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
 `;
 
-export const ProfilePhoto = styled.div`
+export const ProfilePhoto = styled.div<{ $imageUrl?: string }>`
+  position: relative;
+  overflow: hidden;
   width: 64px;
   height: 64px;
   margin: 0 auto 12px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2563eb, #9145d4);
+  background:
+    ${(props) => (props.$imageUrl ? `url(${props.$imageUrl}) center / cover` : "linear-gradient(135deg, #2563eb, #9145d4)")};
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -157,6 +160,39 @@ export const ProfilePhoto = styled.div`
   font-size: 18px;
   font-weight: 800;
   box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+`;
+
+export const ProfileFeedback = styled.p`
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background-color: #fef2f2;
+  color: #dc2626;
+  font-size: 12px;
+  line-height: 1.45;
+`;
+
+export const ProfileEditForm = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+`;
+
+export const ProfileInput = styled.input`
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  color: #111827;
+  font-size: 13px;
+  outline: none;
+
+  &:focus {
+    border-color: #083b4d;
+    box-shadow: 0 0 0 3px rgba(8, 59, 77, 0.12);
+  }
 `;
 
 export const ProfileName = styled.strong`

@@ -55,6 +55,9 @@ export type Database = {
           class_id: string
           created_at: string
           id: string
+          memo: string | null
+          name: string | null
+          profile_image_url: string | null
           student_number: number
         }
         Insert: {
@@ -62,6 +65,9 @@ export type Database = {
           class_id: string
           created_at?: string
           id?: string
+          memo?: string | null
+          name?: string | null
+          profile_image_url?: string | null
           student_number: number
         }
         Update: {
@@ -69,6 +75,9 @@ export type Database = {
           class_id?: string
           created_at?: string
           id?: string
+          memo?: string | null
+          name?: string | null
+          profile_image_url?: string | null
           student_number?: number
         }
         Relationships: [
@@ -87,20 +96,109 @@ export type Database = {
           email: string
           id: string
           name: string
+          profile_image_url: string | null
         }
         Insert: {
           created_at?: string
           email: string
           id: string
           name: string
+          profile_image_url?: string | null
         }
         Update: {
           created_at?: string
           email?: string
           id?: string
           name?: string
+          profile_image_url?: string | null
         }
         Relationships: []
+      }
+      exam_schedules: {
+        Row: {
+          class_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          starts_at: string
+          title: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          ends_at: string
+          id?: string
+          starts_at: string
+          title: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          ends_at?: string
+          id?: string
+          starts_at?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_schedules_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_records: {
+        Row: {
+          accuracy: number
+          class_id: string
+          correct_count: number
+          created_at: string
+          elapsed_seconds: number
+          id: string
+          mode: string
+          problem_count: number
+          student_id: string
+        }
+        Insert: {
+          accuracy: number
+          class_id: string
+          correct_count: number
+          created_at?: string
+          elapsed_seconds: number
+          id?: string
+          mode: string
+          problem_count: number
+          student_id: string
+        }
+        Update: {
+          accuracy?: number
+          class_id?: string
+          correct_count?: number
+          created_at?: string
+          elapsed_seconds?: number
+          id?: string
+          mode?: string
+          problem_count?: number
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_records_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
