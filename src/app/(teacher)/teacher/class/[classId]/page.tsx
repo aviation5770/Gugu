@@ -68,6 +68,20 @@ export default function TeacherClassPage() {
     await updateClassName(classItem.id, className);
   };
 
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyClassCode = async () => {
+    if (!classItem?.class_code) return;
+
+    try {
+      await navigator.clipboard.writeText(classItem.class_code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.alert("복사에 실패했습니다. 수업 코드를 수동으로 복사해 주세요.");
+    }
+  };
+
   const handleAddStudent = async () => {
     const newStudent = await addStudent(classItem.id);
 
@@ -87,10 +101,15 @@ export default function TeacherClassPage() {
 
   return (
     <S.DetailContainer>
-      <S.Banner $bgColor={classItem.header_color}>
+        <S.Banner $bgColor={classItem.header_color}>
         <S.BannerTitle>{classItem.class_name}</S.BannerTitle>
         <S.BannerDescription>{classItem.description}</S.BannerDescription>
-        <S.CodeBadge>{classItem.class_code}</S.CodeBadge>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <S.CodeBadge>{classItem.class_code}</S.CodeBadge>
+          <S.UtilityButton type="button" onClick={handleCopyClassCode}>
+            {copied ? "복사됨" : "복사"}
+          </S.UtilityButton>
+        </div>
       </S.Banner>
 
       <S.TabGrid>
@@ -117,7 +136,7 @@ export default function TeacherClassPage() {
           <S.Panel>
             <S.PanelTitle>게시판</S.PanelTitle>
             <S.NoticeList>
-              <S.NoticeItem>
+              <S.NoticeItem onClick={() => router.push('/teacher/calendar')} style={{ cursor: 'pointer' }}>
                 <strong>{classItem.todo_alert}</strong>
                 <p>학생들은 시험 전까지 오답 노트를 정리하고 타임어택 기록을 한 번 이상 제출합니다.</p>
               </S.NoticeItem>

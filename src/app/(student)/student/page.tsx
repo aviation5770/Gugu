@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   loadStudentWorkspaceAction,
   studentLogoutAction,
   updateStudentProfileAction,
 } from "@/app/actions/student";
+import { supabase } from "@/utils/supabase";
 import type { StudentWorkspace } from "@/app/actions/student";
 import * as S from "./student.styles";
 
@@ -26,6 +27,7 @@ export default function StudentInfoPage() {
   const [workspace, setWorkspace] = useState<StudentWorkspace | null>(null);
   const [name, setName] = useState("");
   const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -56,7 +58,30 @@ export default function StudentInfoPage() {
   }, []);
 
   const handleSave = async () => {
-    const result = await updateStudentProfileAction({ name, profileImageUrl });
+    let finalImageUrl = profileImageUrl;
+
+    if (selectedFile && workspace) {
+      try {
+        const studentId = workspace.profile.id;
+        const path = `profiles/students/${studentId}/${Date.now()}_${selectedFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("profiles")
+          .upload(path, selectedFile, { cacheControl: "3600", upsert: true });
+
+        if (uploadError) {
+          console.error("upload error", uploadError);
+          setMessage("이미지 업로드에 실패했습니다. URL 방식을 사용해 주세요.");
+        } else {
+          const { data } = supabase.storage.from("profiles").getPublicUrl(path);
+          finalImageUrl = data.publicUrl;
+        }
+      } catch (err) {
+        console.error(err);
+        setMessage("이미지 업로드 중 오류가 발생했습니다.");
+      }
+    }
+
+    const result = await updateStudentProfileAction({ name, profileImageUrl: finalImageUrl });
 
     if (!result.success) {
       setMessage(result.error);
@@ -65,6 +90,23 @@ export default function StudentInfoPage() {
 
     setWorkspace((prev) => prev ? { ...prev, profile: result.data } : prev);
     setMessage("프로필을 저장했습니다.");
+  };
+
+  const handleFileChange = useCallback((file?: File | null) => {
+    setSelectedFile(file ?? null);
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setProfileImageUrl(url);
+  }, []);
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (file) handleFileChange(file);
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
   };
 
   const handleLogout = async () => {
@@ -111,11 +153,23 @@ export default function StudentInfoPage() {
                 <S.Input value={name} onChange={(event) => setName(event.target.value)} />
               </S.Field>
               <S.Field>
-                프로필 사진 URL
-                <S.Input
-                  value={profileImageUrl}
-                  onChange={(event) => setProfileImageUrl(event.target.value)}
-                />
+                프로필 사진 (업로드 또는 URL)
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  style={{ border: "1px dashed #d1d5db", padding: 8, borderRadius: 6, display: "flex", gap: 8, alignItems: "center" }}
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
+                  />
+                  <S.Input
+                    placeholder="이미지 URL을 직접 입력하거나 파일을 드래그하세요"
+                    value={profileImageUrl}
+                    onChange={(event) => setProfileImageUrl(event.target.value)}
+                  />
+                </div>
               </S.Field>
             </S.OptionGrid>
             {message ? <S.Notice>{message}</S.Notice> : null}

@@ -11,6 +11,7 @@ import {
   teacherLogoutAction,
   updateTeacherProfileAction,
 } from "@/app/actions/auth";
+import { supabase } from "@/utils/supabase";
 
 interface TopNavbarProps {
   teacherName: string;
@@ -36,6 +37,7 @@ export default function TopNavbar({
   const [profileName, setProfileName] = useState(teacherName);
   const [profileEmail, setProfileEmail] = useState(teacherEmail);
   const [profileImageUrl, setProfileImageUrl] = useState(teacherProfileImageUrl ?? "");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [feedback, setFeedback] = useState("");
   const router = useRouter();
   const { t } = useI18n();
@@ -43,10 +45,31 @@ export default function TopNavbar({
 
   const handleProfileSave = async () => {
     setFeedback("");
+    let finalImageUrl = profileImageUrl;
+
+    if (selectedFile) {
+      try {
+        const path = `profiles/teachers/${Date.now()}_${selectedFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("profiles")
+          .upload(path, selectedFile, { cacheControl: "3600", upsert: true });
+
+        if (uploadError) {
+          setFeedback("이미지 업로드에 실패했습니다. URL로 입력해 주세요.");
+        } else {
+          const { data } = supabase.storage.from("profiles").getPublicUrl(path);
+          finalImageUrl = data.publicUrl;
+        }
+      } catch (err) {
+        console.error(err);
+        setFeedback("이미지 업로드 중 오류가 발생했습니다.");
+      }
+    }
+
     const result = await updateTeacherProfileAction({
       name: profileName,
       email: profileEmail,
-      profileImageUrl,
+      profileImageUrl: finalImageUrl,
     });
 
     if (!result.success) {
@@ -148,6 +171,7 @@ export default function TopNavbar({
                   onChange={(event) => setProfileImageUrl(event.target.value)}
                   placeholder="프로필 사진 URL"
                 />
+                <input type="file" accept="image/*" onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)} />
                 <S.ProfileActionButton type="button" onClick={handleProfileSave}>
                   저장
                 </S.ProfileActionButton>

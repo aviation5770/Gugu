@@ -168,21 +168,22 @@ function buildRankings({
   const byStudent = new Map<string, RecordRow[]>();
 
   records.forEach((record) => {
-    byStudent.set(record.student_id, [...(byStudent.get(record.student_id) ?? []), record]);
+    byStudent.set(record.student_id, [
+      ...(byStudent.get(record.student_id) ?? []),
+      record,
+    ]);
   });
 
   return students
     .map((student) => {
       const studentRecords = byStudent.get(student.id) ?? [];
-      const bestRecord = studentRecords
-        .slice()
-        .sort((a, b) => {
-          if (Number(b.accuracy) !== Number(a.accuracy)) {
-            return Number(b.accuracy) - Number(a.accuracy);
-          }
+      const bestRecord = studentRecords.slice().sort((a, b) => {
+        if (Number(b.accuracy) !== Number(a.accuracy)) {
+          return Number(b.accuracy) - Number(a.accuracy);
+        }
 
-          return a.elapsed_seconds - b.elapsed_seconds;
-        })[0];
+        return a.elapsed_seconds - b.elapsed_seconds;
+      })[0];
 
       return {
         studentId: student.id,
@@ -190,7 +191,10 @@ function buildRankings({
         name: student.name ?? `${student.student_number}번 학생`,
         accuracy: bestRecord ? Number(bestRecord.accuracy) : 0,
         elapsedSeconds: bestRecord?.elapsed_seconds ?? 0,
-        solvedCount: studentRecords.reduce((sum, record) => sum + record.problem_count, 0),
+        solvedCount: studentRecords.reduce(
+          (sum, record) => sum + record.problem_count,
+          0,
+        ),
         rank: 0,
         isMe: student.id === currentStudentId,
       };
@@ -200,7 +204,10 @@ function buildRankings({
         return b.accuracy - a.accuracy;
       }
 
-      return (a.elapsedSeconds || Number.POSITIVE_INFINITY) - (b.elapsedSeconds || Number.POSITIVE_INFINITY);
+      return (
+        (a.elapsedSeconds || Number.POSITIVE_INFINITY) -
+        (b.elapsedSeconds || Number.POSITIVE_INFINITY)
+      );
     })
     .map((ranking, index) => ({ ...ranking, rank: index + 1 }));
 }
@@ -219,7 +226,9 @@ async function requireStudentSession() {
   return sessionResult.data;
 }
 
-export async function loadStudentWorkspaceAction(): Promise<ActionResult<StudentWorkspace>> {
+export async function loadStudentWorkspaceAction(): Promise<
+  ActionResult<StudentWorkspace>
+> {
   try {
     const session = await requireStudentSession();
     const db = await getDb();
@@ -234,12 +243,18 @@ export async function loadStudentWorkspaceAction(): Promise<ActionResult<Student
     }
 
     if (!classRow) {
-      throw new Error("클래스 정보를 찾을 수 없습니다.");
+      // Class no longer exists (teacher deleted class). Clear student session and prompt re-login.
+      await studentLogoutAction();
+      throw new Error(
+        "학생 로그인 정보가 유효하지 않습니다. 로그인 화면으로 이동합니다.",
+      );
     }
 
     const { data: studentRow, error: studentError } = await db
       .from("students")
-      .select("id, class_id, student_number, name, birth_date, profile_image_url")
+      .select(
+        "id, class_id, student_number, name, birth_date, profile_image_url",
+      )
       .eq("id", session.id)
       .maybeSingle<StudentRow>();
 
@@ -248,7 +263,11 @@ export async function loadStudentWorkspaceAction(): Promise<ActionResult<Student
     }
 
     if (!studentRow) {
-      throw new Error("학생 정보를 찾을 수 없습니다.");
+      // Student record missing (may have been deleted). Clear session and prompt re-login.
+      await studentLogoutAction();
+      throw new Error(
+        "학생 로그인 정보가 유효하지 않습니다. 로그인 화면으로 이동합니다.",
+      );
     }
 
     const { data: scheduleRows, error: scheduleError } = await db
@@ -259,12 +278,16 @@ export async function loadStudentWorkspaceAction(): Promise<ActionResult<Student
       .returns<ScheduleRow[]>();
 
     if (scheduleError) {
-      throw new Error(`시험 일정 테이블을 확인해 주세요: ${scheduleError.message}`);
+      throw new Error(
+        `시험 일정 테이블을 확인해 주세요: ${scheduleError.message}`,
+      );
     }
 
     const { data: classStudents, error: classStudentsError } = await db
       .from("students")
-      .select("id, class_id, student_number, name, birth_date, profile_image_url")
+      .select(
+        "id, class_id, student_number, name, birth_date, profile_image_url",
+      )
       .eq("class_id", session.classId)
       .order("student_number", { ascending: true })
       .returns<StudentRow[]>();
@@ -275,7 +298,9 @@ export async function loadStudentWorkspaceAction(): Promise<ActionResult<Student
 
     const { data: recordRows, error: recordError } = await db
       .from("student_records")
-      .select("id, class_id, student_id, mode, problem_count, correct_count, accuracy, elapsed_seconds, created_at")
+      .select(
+        "id, class_id, student_id, mode, problem_count, correct_count, accuracy, elapsed_seconds, created_at",
+      )
       .eq("class_id", session.classId)
       .order("created_at", { ascending: false })
       .returns<RecordRow[]>();
@@ -326,7 +351,8 @@ export async function submitStudentRecordAction({
   try {
     const session = await requireStudentSession();
     const db = await getDb();
-    const accuracy = problemCount > 0 ? Math.round((correctCount / problemCount) * 100) : 0;
+    const accuracy =
+      problemCount > 0 ? Math.round((correctCount / problemCount) * 100) : 0;
     const { data, error } = await db
       .from("student_records")
       .insert({
@@ -338,7 +364,9 @@ export async function submitStudentRecordAction({
         accuracy,
         elapsed_seconds: elapsedSeconds,
       })
-      .select("id, class_id, student_id, mode, problem_count, correct_count, accuracy, elapsed_seconds, created_at")
+      .select(
+        "id, class_id, student_id, mode, problem_count, correct_count, accuracy, elapsed_seconds, created_at",
+      )
       .single<RecordRow>();
 
     if (error) {
@@ -369,7 +397,9 @@ export async function updateStudentProfileAction({
         profile_image_url: profileImageUrl?.trim() || null,
       })
       .eq("id", session.id)
-      .select("id, class_id, student_number, name, birth_date, profile_image_url")
+      .select(
+        "id, class_id, student_number, name, birth_date, profile_image_url",
+      )
       .single<StudentRow>();
 
     if (error) {

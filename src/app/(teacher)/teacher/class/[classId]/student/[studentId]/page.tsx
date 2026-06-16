@@ -64,6 +64,8 @@ export default function StudentDetailPage() {
       birth_date: birthDate.trim(),
       memo: memo.trim(),
     });
+    // 저장 후 이전 화면으로 돌아가기
+    router.back();
   };
 
   const handleResetRecord = () => {

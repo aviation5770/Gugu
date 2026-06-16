@@ -131,7 +131,9 @@ function getBirthdayPassword(birthDate: string | null) {
     return "";
   }
 
-  const monthDayMatch = birthDate.match(/(?:^|\D)(\d{1,2})\D+(\d{1,2})(?:\D|$)/);
+  const monthDayMatch = birthDate.match(
+    /(?:^|\D)(\d{1,2})\D+(\d{1,2})(?:\D|$)/,
+  );
 
   if (monthDayMatch) {
     return `${monthDayMatch[1].padStart(2, "0")}${monthDayMatch[2].padStart(2, "0")}`;
@@ -160,7 +162,9 @@ function extractGradeRoom(className: string) {
 }
 
 function colorForId(id: string, offset = 0) {
-  const seed = id.split("").reduce((sum, char) => sum + char.charCodeAt(0), offset);
+  const seed = id
+    .split("")
+    .reduce((sum, char) => sum + char.charCodeAt(0), offset);
 
   return CLASS_THEME_COLORS[seed % CLASS_THEME_COLORS.length];
 }
@@ -218,7 +222,10 @@ function toTeacherStudent(row: StudentRow): TeacherStudent {
   };
 }
 
-function toTeacherScheduleEvent(row: ExamScheduleRow, classItem: TeacherClass): TeacherScheduleEvent {
+function toTeacherScheduleEvent(
+  row: ExamScheduleRow,
+  classItem: TeacherClass,
+): TeacherScheduleEvent {
   return {
     id: row.id,
     class_id: row.class_id,
@@ -267,7 +274,9 @@ async function assertTeacherOwnsClass(classId: string) {
   return { supabase: db, teacherId, classRow };
 }
 
-export async function loadTeacherWorkspaceAction(): Promise<ActionResult<TeacherWorkspace>> {
+export async function loadTeacherWorkspaceAction(): Promise<
+  ActionResult<TeacherWorkspace>
+> {
   try {
     const { teacherId } = await getTeacherId();
     const db = await getWritableClient();
@@ -275,7 +284,9 @@ export async function loadTeacherWorkspaceAction(): Promise<ActionResult<Teacher
     const teacherName = profile?.name ?? "선생님";
     const { data: classRows, error: classError } = await db
       .from("classes")
-      .select("id, class_name, class_code, created_at, student_count, teacher_id")
+      .select(
+        "id, class_name, class_code, created_at, student_count, teacher_id",
+      )
       .eq("teacher_id", teacherId)
       .order("created_at", { ascending: false })
       .returns<ClassRow[]>();
@@ -288,7 +299,9 @@ export async function loadTeacherWorkspaceAction(): Promise<ActionResult<Teacher
     const { data: studentRows, error: studentError } = classIds.length
       ? await db
           .from("students")
-          .select("id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url")
+          .select(
+            "id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url",
+          )
           .in("class_id", classIds)
           .order("student_number", { ascending: true })
           .returns<StudentRow[]>()
@@ -298,7 +311,65 @@ export async function loadTeacherWorkspaceAction(): Promise<ActionResult<Teacher
       throw new Error(studentError.message);
     }
 
-    const mappedClasses = classRows.map((classRow) => toTeacherClass(classRow, teacherName));
+    // Load practice records (exclude exam records) to compute student stats shown to teacher
+    const studentIds = studentRows.map((s) => s.id);
+    const { data: recordRows, error: recordError } = studentIds.length
+      ? await db
+          .from("student_records")
+          .select(
+            "id, student_id, problem_count, correct_count, accuracy, elapsed_seconds, mode",
+          )
+          .in("student_id", studentIds)
+          .neq("mode", "exam")
+          .returns<
+            Array<{
+              id: string;
+              student_id: string;
+              problem_count: number;
+              correct_count: number;
+              accuracy: number;
+              elapsed_seconds: number;
+              mode: string;
+            }>
+          >()
+      : { data: [] as any[], error: null };
+
+    if (recordError) {
+      throw new Error(recordError.message);
+    }
+
+    const statsByStudent = new Map<
+      string,
+      { accuracy: number; best_time: number; solved_count: number }
+    >();
+
+    recordRows.forEach((r) => {
+      const prev = statsByStudent.get(r.student_id) ?? {
+        accuracy: 0,
+        best_time: 0,
+        solved_count: 0,
+      };
+      const totalSolved = prev.solved_count + (r.problem_count || 0);
+      const totalCorrect =
+        Math.round((prev.accuracy / 100) * prev.solved_count) +
+        (r.correct_count || 0);
+      const accuracy =
+        totalSolved > 0 ? Math.round((totalCorrect / totalSolved) * 100) : 0;
+      const bestTime =
+        prev.best_time === 0
+          ? r.elapsed_seconds || 0
+          : Math.min(prev.best_time, r.elapsed_seconds || 0);
+
+      statsByStudent.set(r.student_id, {
+        accuracy,
+        best_time: bestTime,
+        solved_count: totalSolved,
+      });
+    });
+
+    const mappedClasses = classRows.map((classRow) =>
+      toTeacherClass(classRow, teacherName),
+    );
     const { data: scheduleRows, error: scheduleError } = classIds.length
       ? await db
           .from("exam_schedules")
@@ -318,9 +389,24 @@ export async function loadTeacherWorkspaceAction(): Promise<ActionResult<Teacher
       success: true,
       data: {
         classes: mappedClasses,
-        students: studentRows.map(toTeacherStudent),
+        students: studentRows.map((s) => {
+          const stats = statsByStudent.get(s.id) ?? {
+            accuracy: 0,
+            best_time: 0,
+            solved_count: 0,
+          };
+
+          return {
+            ...toTeacherStudent(s),
+            accuracy: stats.accuracy,
+            best_time: stats.best_time,
+            solved_count: stats.solved_count,
+          };
+        }),
         events: scheduleRows.flatMap((row) => {
-          const classItem = mappedClasses.find((item) => item.id === row.class_id);
+          const classItem = mappedClasses.find(
+            (item) => item.id === row.class_id,
+          );
 
           return classItem ? [toTeacherScheduleEvent(row, classItem)] : [];
         }),
@@ -334,7 +420,9 @@ export async function loadTeacherWorkspaceAction(): Promise<ActionResult<Teacher
 export async function createClassAction({
   className,
   studentCount,
-}: CreateClassInput): Promise<ActionResult<{ classItem: TeacherClass; students: TeacherStudent[] }>> {
+}: CreateClassInput): Promise<
+  ActionResult<{ classItem: TeacherClass; students: TeacherStudent[] }>
+> {
   try {
     const normalizedClassName = normalizeRequiredText(className, "클래스 이름");
     const normalizedStudentCount = safePositiveInteger(studentCount, 1);
@@ -350,25 +438,32 @@ export async function createClassAction({
         class_code: classCode,
         teacher_id: teacherId,
       })
-      .select("id, class_name, class_code, created_at, student_count, teacher_id")
+      .select(
+        "id, class_name, class_code, created_at, student_count, teacher_id",
+      )
       .single<ClassRow>();
 
     if (classError) {
       throw new Error(classError.message);
     }
 
-    const studentRows = Array.from({ length: normalizedStudentCount }, (_, index) => ({
-      class_id: classData.id,
-      student_number: index + 1,
-      name: `${index + 1}번 학생`,
-      birth_date: null,
-      memo: null,
-      profile_image_url: null,
-    }));
+    const studentRows = Array.from(
+      { length: normalizedStudentCount },
+      (_, index) => ({
+        class_id: classData.id,
+        student_number: index + 1,
+        name: `${index + 1}번 학생`,
+        birth_date: null,
+        memo: null,
+        profile_image_url: null,
+      }),
+    );
     const { data: createdStudents, error: studentError } = await db
       .from("students")
       .insert(studentRows)
-      .select("id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url")
+      .select(
+        "id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url",
+      )
       .returns<StudentRow[]>();
 
     if (studentError) {
@@ -404,7 +499,9 @@ export async function updateClassNameAction({
       .update({ class_name: normalizedClassName })
       .eq("id", classId)
       .eq("teacher_id", teacherId)
-      .select("id, class_name, class_code, created_at, student_count, teacher_id")
+      .select(
+        "id, class_name, class_code, created_at, student_count, teacher_id",
+      )
       .single<ClassRow>();
 
     if (error) {
@@ -414,13 +511,18 @@ export async function updateClassNameAction({
     revalidatePath("/teacher/home");
     revalidatePath(`/teacher/class/${classId}`);
 
-    return { success: true, data: toTeacherClass(data, profile?.name ?? "선생님") };
+    return {
+      success: true,
+      data: toTeacherClass(data, profile?.name ?? "선생님"),
+    };
   } catch (error) {
     return { success: false, error: getErrorMessage(error) };
   }
 }
 
-export async function deleteClassAction(classId: string): Promise<ActionResult<null>> {
+export async function deleteClassAction(
+  classId: string,
+): Promise<ActionResult<null>> {
   try {
     const { teacherId } = await getTeacherId();
     const db = await getWritableClient();
@@ -471,7 +573,9 @@ export async function addStudentAction({
         memo: null,
         profile_image_url: null,
       })
-      .select("id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url")
+      .select(
+        "id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url",
+      )
       .single<StudentRow>();
 
     if (studentError) {
@@ -507,7 +611,9 @@ export async function updateStudentAction({
     const db = await getWritableClient();
     const { data: currentStudent, error: currentStudentError } = await db
       .from("students")
-      .select("id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url")
+      .select(
+        "id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url",
+      )
       .eq("id", studentId)
       .maybeSingle<StudentRow>();
 
@@ -543,7 +649,9 @@ export async function updateStudentAction({
         profile_image_url: profileImageUrl?.trim() || null,
       })
       .eq("id", studentId)
-      .select("id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url")
+      .select(
+        "id, class_id, created_at, student_number, name, birth_date, memo, profile_image_url",
+      )
       .single<StudentRow>();
 
     if (updateError) {
@@ -558,7 +666,9 @@ export async function updateStudentAction({
   }
 }
 
-export async function deleteStudentAction(studentId: string): Promise<ActionResult<null>> {
+export async function deleteStudentAction(
+  studentId: string,
+): Promise<ActionResult<null>> {
   try {
     const { teacherId } = await getTeacherId();
     const db = await getWritableClient();
@@ -652,7 +762,9 @@ export async function createScheduleAction({
   }
 }
 
-export async function deleteScheduleAction(scheduleId: string): Promise<ActionResult<null>> {
+export async function deleteScheduleAction(
+  scheduleId: string,
+): Promise<ActionResult<null>> {
   try {
     const { teacherId } = await getTeacherId();
     const db = await getWritableClient();
@@ -685,7 +797,10 @@ export async function deleteScheduleAction(scheduleId: string): Promise<ActionRe
       throw new Error("시험 일정을 삭제할 권한이 없습니다.");
     }
 
-    const { error } = await db.from("exam_schedules").delete().eq("id", scheduleId);
+    const { error } = await db
+      .from("exam_schedules")
+      .delete()
+      .eq("id", scheduleId);
 
     if (error) {
       throw new Error(error.message);

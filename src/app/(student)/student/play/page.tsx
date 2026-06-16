@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   loadStudentWorkspaceAction,
   submitStudentRecordAction,
@@ -57,6 +58,7 @@ export default function StudentPlayPage() {
   const [startedAt, setStartedAt] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [resultMessage, setResultMessage] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     let isMounted = true;
@@ -69,6 +71,12 @@ export default function StudentPlayPage() {
       }
 
       if (!result.success) {
+        // If session is invalid, redirect to student login
+        if (result.error && result.error.includes("로그인")) {
+          router.replace('/login/student');
+          return;
+        }
+
         setError(result.error);
         return;
       }
