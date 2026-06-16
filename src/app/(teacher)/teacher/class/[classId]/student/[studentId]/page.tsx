@@ -57,9 +57,9 @@ export default function StudentDetailPage() {
     );
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    updateStudent(student.id, {
+    await updateStudent(student.id, {
       name: name.trim() || `${student.student_number}번 학생`,
       birth_date: birthDate.trim(),
       memo: memo.trim(),
@@ -70,12 +70,12 @@ export default function StudentDetailPage() {
     resetStudentRecord(student.id);
   };
 
-  const handleDeleteStudent = () => {
+  const handleDeleteStudent = async () => {
     if (!window.confirm(`${student.name} 학생을 클래스에서 삭제하시겠습니까?`)) {
       return;
     }
 
-    deleteStudent(student.id);
+    await deleteStudent(student.id);
     router.push(`/teacher/class/${classItem.id}`);
   };
 

@@ -10,6 +10,7 @@ interface AuthStepFormProps {
   onChangeBirthDate: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onBack: () => void;
+  isPending?: boolean;
 }
 
 export default function AuthStepForm({
@@ -19,6 +20,7 @@ export default function AuthStepForm({
   onChangeBirthDate,
   onSubmit,
   onBack,
+  isPending = false,
 }: AuthStepFormProps) {
   return (
     <>
@@ -40,7 +42,9 @@ export default function AuthStepForm({
           maxLength={8}
           required
         />
-        <S.SubmitButton type="submit">로그인</S.SubmitButton>
+        <S.SubmitButton type="submit" disabled={isPending}>
+          {isPending ? '로그인 중...' : '로그인'}
+        </S.SubmitButton>
       </S.InputForm>
 
       <S.FooterArea>

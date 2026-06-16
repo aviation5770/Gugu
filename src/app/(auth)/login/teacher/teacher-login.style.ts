@@ -11,6 +11,13 @@ export const Container = styled.div`
   overflow: hidden;
 `;
 
+export const LanguageArea = styled.div`
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 30;
+`;
+
 export const CardSection = styled.div`
   position: relative;
   z-index: 10;
@@ -80,6 +87,21 @@ export const SubmitButton = styled.button`
   &:active {
     transform: scale(0.98);
   }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+    transform: none;
+  }
+`;
+
+export const ErrorMessage = styled.p`
+  padding: 10px 12px;
+  border-radius: 10px;
+  background-color: #fef2f2;
+  color: #dc2626;
+  font-size: 13px;
+  line-height: 1.5;
 `;
 
 export const FooterArea = styled.div`

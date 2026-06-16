@@ -191,7 +191,7 @@ export async function teacherSignupAction({
     const profileSupabase = process.env.SUPABASE_SERVICE_ROLE_KEY
       ? await createAdminClient()
       : supabase;
-    const { error: profileError } = await profileSupabase.from("teacher").upsert(
+    const { error: profileError } = await profileSupabase.from("teachers").upsert(
       {
         id: data.user.id,
         email: normalizedEmail,
@@ -240,12 +240,18 @@ export async function teacherLoginAction({
 
     revalidatePath("/teacher/dashboard");
 
+    const { data: profile } = await supabase
+      .from("teachers")
+      .select("name")
+      .eq("id", data.user.id)
+      .maybeSingle<{ name: string }>();
+
     return {
       success: true,
       data: {
         id: data.user.id,
         email: data.user.email ?? null,
-        name: String(data.user.user_metadata?.name ?? ""),
+        name: profile?.name ?? String(data.user.user_metadata?.name ?? ""),
       },
     };
   } catch (error) {
@@ -283,12 +289,18 @@ export async function getTeacherSessionAction(): Promise<ActionResult<TeacherSes
       return { success: true, data: null };
     }
 
+    const { data: profile } = await supabase
+      .from("teachers")
+      .select("name")
+      .eq("id", data.user.id)
+      .maybeSingle<{ name: string }>();
+
     return {
       success: true,
       data: {
         id: data.user.id,
         email: data.user.email ?? null,
-        name: String(data.user.user_metadata?.name ?? ""),
+        name: profile?.name ?? String(data.user.user_metadata?.name ?? ""),
       },
     };
   } catch (error) {

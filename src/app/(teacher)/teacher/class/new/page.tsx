@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import * as S from "./new-class.styles";
@@ -12,12 +12,18 @@ export default function NewClassPage() {
   const [studentCount, setStudentCount] = useState("24");
   const { addClass } = useTeacherClasses();
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const className = `${grade}학년 ${room}반`;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const createdClass = addClass({ grade, room, studentCount });
-    router.push(`/teacher/class/${createdClass.id}`);
+    startTransition(async () => {
+      const createdClass = await addClass({ grade, room, studentCount });
+
+      if (createdClass) {
+        router.push(`/teacher/class/${createdClass.id}`);
+      }
+    });
   };
 
   return (
@@ -47,7 +53,9 @@ export default function NewClassPage() {
               onChange={(event) => setStudentCount(event.target.value)}
             />
           </S.Label>
-          <S.SubmitButton type="submit">자동 명단 생성</S.SubmitButton>
+          <S.SubmitButton type="submit" disabled={isPending}>
+            {isPending ? "생성 중..." : "자동 명단 생성"}
+          </S.SubmitButton>
         </S.Form>
 
         <S.ResultBox>

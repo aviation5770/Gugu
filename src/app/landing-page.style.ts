@@ -8,6 +8,13 @@ export const PageWrapper = styled.div`
   overflow-x: hidden;
 `;
 
+export const LanguageBar = styled.div`
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 30;
+`;
+
 export const HeroSection = styled.section`
   position: relative;
   width: 100%;

@@ -1,55 +1,76 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useTransition } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import * as S from './teacher-login.style';
 import AuthBackground from '../../_components/AuthBackground';
+import { teacherLoginAction } from '@/app/actions/auth';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useI18n } from '@/i18n/LocaleProvider';
 
 export default function TeacherLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { t } = useI18n();
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
     if (!email.trim() || !password.trim()) return;
 
-    console.log('교사 로그인 요청 - 이메일:', email, '비밀번호:', password);
-    router.push('/teacher/dashboard');
+    startTransition(async () => {
+      const result = await teacherLoginAction({ email, password });
+
+      if (!result.success) {
+        setErrorMessage(result.error);
+        return;
+      }
+
+      router.push('/teacher/dashboard');
+    });
   };
 
   return (
     <S.Container>
       <AuthBackground />
+      <S.LanguageArea>
+        <LanguageSwitcher />
+      </S.LanguageArea>
 
       <S.CardSection>
         <S.LogoWrapper>
-          <Image src="/images/gugu.svg" alt="구구" fill priority />
+          <Image src="/images/gugu.svg" alt="구구" fill priority sizes="220px" />
         </S.LogoWrapper>
 
         <S.InputForm onSubmit={handleLoginSubmit}>
           <S.AuthInput
             type="email"
-            placeholder="이메일"
+            placeholder={t('auth.email')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
           <S.AuthInput
             type="password"
-            placeholder="비밀번호"
+            placeholder={t('auth.password')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <S.SubmitButton type="submit">로그인</S.SubmitButton>
+          {errorMessage ? <S.ErrorMessage>{errorMessage}</S.ErrorMessage> : null}
+          <S.SubmitButton type="submit" disabled={isPending}>
+            {isPending ? t('auth.loggingIn') : t('auth.login')}
+          </S.SubmitButton>
         </S.InputForm>
 
         <S.FooterArea>
           <div className="divider">
-            <span>또는</span>
+            <span>{t('auth.or')}</span>
           </div>
 
           <div className="nav-links-row">
@@ -58,7 +79,7 @@ export default function TeacherLoginPage() {
               className="text-link" 
               onClick={() => router.push('/find-password')}
             >
-              비밀번호 찾기
+              {t('auth.findPassword')}
             </button>
             <span>|</span>
             <button 
@@ -66,18 +87,18 @@ export default function TeacherLoginPage() {
               className="text-link" 
               onClick={() => router.push('/login/student')}
             >
-              학생 로그인
+              {t('auth.studentLogin')}
             </button>
           </div>
 
           <div className="signup-prompt">
-            구구에 처음 오셨나요?
+            {t('auth.newToGugu')}
             <button 
               type="button" 
               className="signup-link" 
               onClick={() => router.push('/signup')}
             >
-              회원가입
+              {t('auth.signup')}
             </button>
           </div>
         </S.FooterArea>

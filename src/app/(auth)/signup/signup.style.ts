@@ -11,6 +11,13 @@ export const Container = styled.div`
   overflow: hidden;
 `;
 
+export const LanguageArea = styled.div`
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 30;
+`;
+
 export const CardSection = styled.div`
   position: relative;
   z-index: 10;

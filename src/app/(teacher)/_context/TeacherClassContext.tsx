@@ -10,6 +10,15 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import {
+  addStudentAction,
+  createClassAction,
+  deleteClassAction,
+  deleteStudentAction,
+  loadTeacherWorkspaceAction,
+  updateClassNameAction,
+  updateStudentAction,
+} from "@/app/actions/class";
+import {
   CLASS_THEME_COLORS,
   MOCK_EVENTS,
   MOCK_TEACHER_CLASSES,
@@ -19,8 +28,6 @@ import {
   type TeacherStudent,
 } from "../_data/mockTeacher";
 
-const CLASS_STORAGE_KEY = "gugu_teacher_classes";
-const STUDENT_STORAGE_KEY = "gugu_teacher_students";
 const EVENT_STORAGE_KEY = "gugu_teacher_events";
 
 type CreateTeacherClassInput = {
@@ -39,16 +46,21 @@ type TeacherClassContextValue = {
   classes: TeacherClass[];
   students: TeacherStudent[];
   events: TeacherScheduleEvent[];
-  addClass: (input: CreateTeacherClassInput) => TeacherClass;
-  updateClassName: (classId: string, className: string) => void;
-  deleteClass: (classId: string) => void;
-  addStudent: (classId: string) => TeacherStudent | null;
+  isLoading: boolean;
+  loadError: string;
+  addClass: (input: CreateTeacherClassInput) => Promise<TeacherClass | null>;
+  updateClassName: (classId: string, className: string) => Promise<void>;
+  deleteClass: (classId: string) => Promise<void>;
+  addStudent: (classId: string) => Promise<TeacherStudent | null>;
   getStudentsByClass: (classId: string) => TeacherStudent[];
   getRankings: (classId?: string) => Array<TeacherStudent & { class_name: string }>;
-  updateStudent: (studentId: string, input: Partial<Pick<TeacherStudent, "name" | "memo" | "birth_date">>) => void;
+  updateStudent: (
+    studentId: string,
+    input: Partial<Pick<TeacherStudent, "name" | "memo" | "birth_date">>,
+  ) => Promise<void>;
   resetStudentRecord: (studentId: string) => void;
   resetClassRecords: (classId: string) => void;
-  deleteStudent: (studentId: string) => void;
+  deleteStudent: (studentId: string) => Promise<void>;
   addScheduleEvent: (input: CreateScheduleEventInput) => TeacherScheduleEvent | null;
   deleteScheduleEvent: (eventId: string) => void;
   getEventsByClass: (classId: string) => TeacherScheduleEvent[];
@@ -66,28 +78,11 @@ function safeNumber(value: string, fallback: number) {
   return parsed;
 }
 
-function createClassCode(grade: number, room: number) {
-  const suffix = Math.floor(10 + Math.random() * 90);
-
-  return `GG-${grade}${room}${suffix}`;
-}
-
-function formatToday() {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-
-  return `${now.getFullYear()}-${month}-${day}`;
-}
-
 function getBirthdayPassword(birthDate: string) {
   const monthDayMatch = birthDate.match(/(?:^|\D)(\d{1,2})\D+(\d{1,2})(?:\D|$)/);
 
   if (monthDayMatch) {
-    const month = monthDayMatch[1].padStart(2, "0");
-    const day = monthDayMatch[2].padStart(2, "0");
-
-    return `${month}${day}`;
+    return `${monthDayMatch[1].padStart(2, "0")}${monthDayMatch[2].padStart(2, "0")}`;
   }
 
   const digits = birthDate.replace(/\D/g, "");
@@ -101,69 +96,6 @@ function getBirthdayPassword(birthDate: string) {
   }
 
   return digits;
-}
-
-function normalizeClass(classItem: TeacherClass): TeacherClass {
-  return {
-    ...classItem,
-    created_at: classItem.created_at ?? formatToday(),
-  };
-}
-
-function normalizeStudent(student: TeacherStudent): TeacherStudent {
-  return {
-    ...student,
-    password: student.password ?? getBirthdayPassword(student.birth_date ?? ""),
-    memo: student.memo ?? "",
-  };
-}
-
-function readStoredClasses() {
-  if (typeof window === "undefined") {
-    return MOCK_TEACHER_CLASSES;
-  }
-
-  try {
-    const stored = window.localStorage.getItem(CLASS_STORAGE_KEY);
-
-    if (!stored) {
-      return MOCK_TEACHER_CLASSES;
-    }
-
-    const parsed = JSON.parse(stored) as TeacherClass[];
-
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return MOCK_TEACHER_CLASSES.map(normalizeClass);
-    }
-
-    return parsed.map(normalizeClass);
-  } catch {
-    return MOCK_TEACHER_CLASSES.map(normalizeClass);
-  }
-}
-
-function readStoredStudents() {
-  if (typeof window === "undefined") {
-    return MOCK_STUDENTS;
-  }
-
-  try {
-    const stored = window.localStorage.getItem(STUDENT_STORAGE_KEY);
-
-    if (!stored) {
-      return MOCK_STUDENTS.map(normalizeStudent);
-    }
-
-    const parsed = JSON.parse(stored) as TeacherStudent[];
-
-    if (!Array.isArray(parsed)) {
-      return MOCK_STUDENTS.map(normalizeStudent);
-    }
-
-    return parsed.map(normalizeStudent);
-  } catch {
-    return MOCK_STUDENTS.map(normalizeStudent);
-  }
 }
 
 function readStoredEvents() {
@@ -190,141 +122,162 @@ function readStoredEvents() {
   }
 }
 
-function createStudentsForClass(classItem: TeacherClass) {
-  return Array.from({ length: classItem.student_count }, (_, index) => {
-    const number = index + 1;
+function createLocalEvent(input: CreateScheduleEventInput, classItem: TeacherClass) {
+  return {
+    id: `evt-${Date.now()}`,
+    class_id: classItem.id,
+    class_name: classItem.class_name,
+    title: input.title.trim(),
+    date: input.date,
+    color: classItem.header_color,
+  };
+}
 
-    return {
-      id: `${classItem.id}-student-${number}`,
-      class_id: classItem.id,
-      student_number: number,
-      name: `${number}번 학생`,
-      birth_date: "",
-      password: "",
-      memo: "",
-      accuracy: 0,
-      best_time: 0,
-      solved_count: 0,
-    };
-  });
+function createOptimisticClass(input: CreateTeacherClassInput): TeacherClass {
+  const grade = safeNumber(input.grade, 1);
+  const room = safeNumber(input.room, 1);
+  const studentCount = safeNumber(input.studentCount, 1);
+
+  return {
+    id: `pending-${Date.now()}`,
+    class_name: `${grade}학년 ${room}반`,
+    grade,
+    room,
+    teacher_name: "구구쌤",
+    class_code: "생성 중",
+    student_count: studentCount,
+    todo_alert: "캘린더에서 다음 시험 일정을 등록해 주세요",
+    profile_color: CLASS_THEME_COLORS[(grade + room) % CLASS_THEME_COLORS.length],
+    header_color: CLASS_THEME_COLORS[(grade + room + 2) % CLASS_THEME_COLORS.length],
+    description: `${grade}학년 ${room}반 클래스입니다.`,
+    created_at: new Date().toISOString().slice(0, 10),
+  };
 }
 
 export function TeacherClassProvider({ children }: { children: ReactNode }) {
-  const [classes, setClasses] = useState<TeacherClass[]>(() => readStoredClasses());
-  const [students, setStudents] = useState<TeacherStudent[]>(() => readStoredStudents());
+  const [classes, setClasses] = useState<TeacherClass[]>(MOCK_TEACHER_CLASSES);
+  const [students, setStudents] = useState<TeacherStudent[]>(MOCK_STUDENTS);
   const [events, setEvents] = useState<TeacherScheduleEvent[]>(() => readStoredEvents());
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    window.localStorage.setItem(CLASS_STORAGE_KEY, JSON.stringify(classes));
-  }, [classes]);
+    let isMounted = true;
 
-  useEffect(() => {
-    window.localStorage.setItem(STUDENT_STORAGE_KEY, JSON.stringify(students));
-  }, [students]);
+    async function loadWorkspace() {
+      setIsLoading(true);
+      const result = await loadTeacherWorkspaceAction();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (!result.success) {
+        setLoadError(result.error);
+        setIsLoading(false);
+        return;
+      }
+
+      setClasses(result.data.classes);
+      setStudents(result.data.students);
+      setLoadError("");
+      setIsLoading(false);
+    }
+
+    loadWorkspace();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     window.localStorage.setItem(EVENT_STORAGE_KEY, JSON.stringify(events));
   }, [events]);
 
-  const addClass = useCallback((input: CreateTeacherClassInput) => {
-    const grade = safeNumber(input.grade, 1);
-    const room = safeNumber(input.room, 1);
-    const studentCount = safeNumber(input.studentCount, 1);
+  const addClass = useCallback(async (input: CreateTeacherClassInput) => {
+    const optimisticClass = createOptimisticClass(input);
 
-    const newClass: TeacherClass = {
-      id: `class-${Date.now()}`,
-      class_name: `${grade}학년 ${room}반`,
-      grade,
-      room,
-      teacher_name: "정정자",
-      class_code: createClassCode(grade, room),
-      student_count: studentCount,
-      todo_alert: "새 수업 - 첫 시험 일정을 등록해 주세요",
-      profile_color: CLASS_THEME_COLORS[(grade + room) % CLASS_THEME_COLORS.length],
-      header_color: CLASS_THEME_COLORS[(grade + room + 2) % CLASS_THEME_COLORS.length],
-      description: `새로 생성된 ${grade}학년 ${room}반 클래스입니다. 학생 번호 1번부터 ${studentCount}번까지 자동 배정되었습니다.`,
-      created_at: formatToday(),
-    };
+    setClasses((prev) => [optimisticClass, ...prev]);
 
-    setClasses((prev) => [newClass, ...prev]);
-    setStudents((prev) => [...createStudentsForClass(newClass), ...prev]);
+    const result = await createClassAction({
+      className: optimisticClass.class_name,
+      studentCount: optimisticClass.student_count,
+    });
 
-    return newClass;
+    if (!result.success) {
+      setClasses((prev) => prev.filter((classItem) => classItem.id !== optimisticClass.id));
+      window.alert(result.error);
+      return null;
+    }
+
+    setClasses((prev) => [
+      result.data.classItem,
+      ...prev.filter((classItem) => classItem.id !== optimisticClass.id),
+    ]);
+    setStudents((prev) => [...result.data.students, ...prev]);
+
+    return result.data.classItem;
   }, []);
 
-  const updateClassName = useCallback((classId: string, className: string) => {
-    const nextClassName = className.trim();
+  const updateClassName = useCallback(async (classId: string, className: string) => {
+    const result = await updateClassNameAction({ classId, className });
 
-    if (!nextClassName) {
+    if (!result.success) {
+      window.alert(result.error);
       return;
     }
 
     setClasses((prev) =>
-      prev.map((classItem) =>
-        classItem.id === classId
-          ? {
-              ...classItem,
-              class_name: nextClassName,
-            }
-          : classItem,
-      ),
+      prev.map((classItem) => (classItem.id === classId ? result.data : classItem)),
     );
     setEvents((prev) =>
       prev.map((event) =>
         event.class_id === classId
           ? {
               ...event,
-              class_name: nextClassName,
+              class_name: result.data.class_name,
             }
           : event,
       ),
     );
   }, []);
 
-  const deleteClass = useCallback((classId: string) => {
+  const deleteClass = useCallback(async (classId: string) => {
+    const result = await deleteClassAction(classId);
+
+    if (!result.success) {
+      window.alert(result.error);
+      return;
+    }
+
     setClasses((prev) => prev.filter((classItem) => classItem.id !== classId));
     setStudents((prev) => prev.filter((student) => student.class_id !== classId));
     setEvents((prev) => prev.filter((event) => event.class_id !== classId));
   }, []);
 
-  const addStudent = useCallback((classId: string) => {
-    const classItem = classes.find((item) => item.id === classId);
+  const addStudent = useCallback(async (classId: string) => {
+    const result = await addStudentAction({ classId });
 
-    if (!classItem) {
+    if (!result.success) {
+      window.alert(result.error);
       return null;
     }
 
-    const nextNumber =
-      students
-        .filter((student) => student.class_id === classId)
-        .reduce((max, student) => Math.max(max, student.student_number), 0) + 1;
-    const newStudent: TeacherStudent = {
-      id: `${classId}-student-${Date.now()}`,
-      class_id: classId,
-      student_number: nextNumber,
-      name: `${nextNumber}번 학생`,
-      birth_date: "",
-      password: "",
-      memo: "",
-      accuracy: 0,
-      best_time: 0,
-      solved_count: 0,
-    };
-
-    setStudents((prev) => [...prev, newStudent]);
+    setStudents((prev) => [...prev, result.data]);
     setClasses((prev) =>
-      prev.map((item) =>
-        item.id === classId
+      prev.map((classItem) =>
+        classItem.id === classId
           ? {
-              ...item,
-              student_count: item.student_count + 1,
+              ...classItem,
+              student_count: classItem.student_count + 1,
             }
-          : item,
+          : classItem,
       ),
     );
 
-    return newStudent;
-  }, [classes, students]);
+    return result.data;
+  }, []);
 
   const getStudentsByClass = useCallback(
     (classId: string) =>
@@ -350,7 +303,10 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
           }
 
           if (a.best_time !== b.best_time) {
-            return (a.best_time || Number.POSITIVE_INFINITY) - (b.best_time || Number.POSITIVE_INFINITY);
+            return (
+              (a.best_time || Number.POSITIVE_INFINITY) -
+              (b.best_time || Number.POSITIVE_INFINITY)
+            );
           }
 
           return a.student_number - b.student_number;
@@ -359,26 +315,36 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
   );
 
   const updateStudent = useCallback(
-    (
+    async (
       studentId: string,
       input: Partial<Pick<TeacherStudent, "name" | "memo" | "birth_date">>,
     ) => {
+      const targetStudent = students.find((student) => student.id === studentId);
+      const nextBirthDate = input.birth_date ?? targetStudent?.birth_date ?? "";
+      const result = await updateStudentAction({
+        studentId,
+        birthDate: nextBirthDate,
+      });
+
+      if (!result.success) {
+        window.alert(result.error);
+        return;
+      }
+
       setStudents((prev) =>
         prev.map((student) =>
           student.id === studentId
             ? {
                 ...student,
                 ...input,
-                password:
-                  input.birth_date === undefined
-                    ? student.password
-                    : getBirthdayPassword(input.birth_date),
+                birth_date: result.data.birth_date,
+                password: getBirthdayPassword(result.data.birth_date),
               }
             : student,
         ),
       );
     },
-    [],
+    [students],
   );
 
   const resetStudentRecord = useCallback((studentId: string) => {
@@ -396,6 +362,45 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const resetClassRecords = useCallback((classId: string) => {
+    setStudents((prev) =>
+      prev.map((student) =>
+        student.class_id === classId
+          ? {
+              ...student,
+              accuracy: 0,
+              best_time: 0,
+              solved_count: 0,
+            }
+          : student,
+      ),
+    );
+  }, []);
+
+  const deleteStudent = useCallback(async (studentId: string) => {
+    const targetStudent = students.find((student) => student.id === studentId);
+    const result = await deleteStudentAction(studentId);
+
+    if (!result.success) {
+      window.alert(result.error);
+      return;
+    }
+
+    setStudents((prev) => prev.filter((student) => student.id !== studentId));
+    if (targetStudent) {
+      setClasses((prev) =>
+        prev.map((classItem) =>
+          classItem.id === targetStudent.class_id
+            ? {
+                ...classItem,
+                student_count: Math.max(0, classItem.student_count - 1),
+              }
+            : classItem,
+        ),
+      );
+    }
+  }, [students]);
+
   const addScheduleEvent = useCallback(
     (input: CreateScheduleEventInput) => {
       const classItem = classes.find((item) => item.id === input.classId);
@@ -405,15 +410,7 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
         return null;
       }
 
-      const event: TeacherScheduleEvent = {
-        id: `evt-${Date.now()}`,
-        class_id: classItem.id,
-        class_name: classItem.class_name,
-        title,
-        date: input.date,
-        color: classItem.header_color,
-      };
-
+      const event = createLocalEvent(input, classItem);
       setEvents((prev) => [...prev, event]);
 
       return event;
@@ -433,44 +430,13 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
     [events],
   );
 
-  const resetClassRecords = useCallback((classId: string) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.class_id === classId
-          ? {
-              ...student,
-              accuracy: 0,
-              best_time: 0,
-              solved_count: 0,
-            }
-          : student,
-      ),
-    );
-  }, []);
-
-  const deleteStudent = useCallback((studentId: string) => {
-    const targetStudent = students.find((student) => student.id === studentId);
-
-    setStudents((prev) => prev.filter((student) => student.id !== studentId));
-    if (targetStudent) {
-      setClasses((prev) =>
-        prev.map((classItem) =>
-          classItem.id === targetStudent.class_id
-            ? {
-                ...classItem,
-                student_count: Math.max(0, classItem.student_count - 1),
-              }
-            : classItem,
-        ),
-      );
-    }
-  }, [students]);
-
   const value = useMemo(
     () => ({
       classes,
       students,
       events,
+      isLoading,
+      loadError,
       addClass,
       updateClassName,
       deleteClass,
@@ -497,6 +463,8 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
       getEventsByClass,
       getRankings,
       getStudentsByClass,
+      isLoading,
+      loadError,
       resetClassRecords,
       resetStudentRecord,
       students,

@@ -8,12 +8,12 @@ export default function TeacherDashboardPage() {
   const { classes, deleteClass } = useTeacherClasses();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  const handleDeleteClass = (classId: string, className: string) => {
+  const handleDeleteClass = async (classId: string, className: string) => {
     if (!window.confirm(`${className} 클래스를 삭제하시겠습니까? 학생과 일정도 함께 삭제됩니다.`)) {
       return;
     }
 
-    deleteClass(classId);
+    await deleteClass(classId);
     setOpenMenuId(null);
   };
 

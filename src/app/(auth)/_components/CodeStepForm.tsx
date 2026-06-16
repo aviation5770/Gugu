@@ -8,6 +8,7 @@ interface CodeStepFormProps {
   onChangeCode: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onRedirectTeacher: () => void;
+  isPending?: boolean;
 }
 
 export default function CodeStepForm({
@@ -15,6 +16,7 @@ export default function CodeStepForm({
   onChangeCode,
   onSubmit,
   onRedirectTeacher,
+  isPending = false,
 }: CodeStepFormProps) {
   return (
     <>
@@ -26,7 +28,9 @@ export default function CodeStepForm({
           onChange={(e) => onChangeCode(e.target.value)}
           required
         />
-        <S.SubmitButton type="submit">입장</S.SubmitButton>
+        <S.SubmitButton type="submit" disabled={isPending}>
+          {isPending ? '확인 중...' : '입장'}
+        </S.SubmitButton>
       </S.InputForm>
 
       <S.FooterArea>

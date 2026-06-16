@@ -55,7 +55,7 @@ export default function TeacherClassPage() {
       : 0;
   const fastestRecord = rankings[0]?.best_time ?? 0;
 
-  const handleRenameClass = (event: FormEvent<HTMLFormElement>) => {
+  const handleRenameClass = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const className = String(formData.get("className") ?? "").trim();
@@ -65,23 +65,23 @@ export default function TeacherClassPage() {
       return;
     }
 
-    updateClassName(classItem.id, className);
+    await updateClassName(classItem.id, className);
   };
 
-  const handleAddStudent = () => {
-    const newStudent = addStudent(classItem.id);
+  const handleAddStudent = async () => {
+    const newStudent = await addStudent(classItem.id);
 
     if (newStudent) {
       router.push(`/teacher/class/${classItem.id}/student/${newStudent.id}`);
     }
   };
 
-  const handleDeleteClass = () => {
+  const handleDeleteClass = async () => {
     if (!window.confirm(`${classItem.class_name} 클래스를 삭제하시겠습니까? 학생과 일정도 함께 삭제됩니다.`)) {
       return;
     }
 
-    deleteClass(classItem.id);
+    await deleteClass(classItem.id);
     router.push("/teacher/home");
   };
 

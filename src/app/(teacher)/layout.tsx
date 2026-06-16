@@ -8,13 +8,15 @@ import {
   TeacherClassProvider,
   useTeacherClasses,
 } from "./_context/TeacherClassContext";
+import { getTeacherSessionAction } from "@/app/actions/auth";
 
 function TeacherLayoutShell({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [teacherProfile, setTeacherProfile] = useState({
+    name: "구구쌤",
+    email: "teacher@gugu.kr",
+  });
   const { classes } = useTeacherClasses();
-  
-  const teacherName = "어떻게 사람 이름이 정정자"; 
-  const teacherEmail = "teacher@gugu.kr";
 
   useEffect(() => {
     const handleResize = () => {
@@ -31,11 +33,34 @@ function TeacherLayoutShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadTeacherProfile() {
+      const result = await getTeacherSessionAction();
+
+      if (!isMounted || !result.success || !result.data) {
+        return;
+      }
+
+      setTeacherProfile({
+        name: result.data.name || "구구쌤",
+        email: result.data.email ?? "teacher@gugu.kr",
+      });
+    }
+
+    loadTeacherProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <S.LayoutWrapper>
       <TopNavbar
-        teacherName={teacherName}
-        teacherEmail={teacherEmail}
+        teacherName={teacherProfile.name}
+        teacherEmail={teacherProfile.email}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
       />
 
