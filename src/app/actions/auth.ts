@@ -218,10 +218,9 @@ export async function teacherSignupAction({
       throw new Error("비밀번호가 일치하지 않습니다.");
     }
 
-    const supabase = await getWritableClient();
+    const supabasePlain = await createClient();
 
-    // [1단계] Supabase Auth(인증 시스템)에 계정 생성
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabasePlain.auth.signUp({
       email: normalizedEmail,
       password: normalizedPassword,
       options: {
@@ -240,11 +239,20 @@ export async function teacherSignupAction({
       throw new Error("회원가입 결과를 확인할 수 없습니다.");
     }
 
-    await upsertTeacherProfile({
-      id: data.user.id,
-      email: normalizedEmail,
-      name: normalizedName,
-    });
+    const adminClient = await createAdminClient();
+    const { error: dbError } = await adminClient.from("teachers").upsert(
+      {
+        id: data.user.id,
+        email: normalizedEmail,
+        name: normalizedName,
+        profile_image_url: null,
+      },
+      { onConflict: "id" },
+    );
+
+    if (dbError) {
+      throw new Error(`선생님 정보 저장 실패: ${dbError.message}`);
+    }
 
     return {
       success: true,
