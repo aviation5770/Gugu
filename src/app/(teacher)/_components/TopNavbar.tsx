@@ -42,6 +42,7 @@ export default function TopNavbar({
   const router = useRouter();
   const { t } = useI18n();
   const profileInitial = teacherName.trim().slice(0, 2) || "T";
+  const currentProfileImageUrl = profileImageUrl || teacherProfileImageUrl || "";
 
   const handleProfileSave = async () => {
     setFeedback("");
@@ -56,6 +57,7 @@ export default function TopNavbar({
 
         if (uploadError) {
           setFeedback("이미지 업로드에 실패했습니다. URL로 입력해 주세요.");
+          return;
         } else {
           const { data } = supabase.storage.from("profiles").getPublicUrl(path);
           finalImageUrl = data.publicUrl;
@@ -63,6 +65,7 @@ export default function TopNavbar({
       } catch (err) {
         console.error(err);
         setFeedback("이미지 업로드 중 오류가 발생했습니다.");
+        return;
       }
     }
 
@@ -77,10 +80,12 @@ export default function TopNavbar({
       return;
     }
 
+    setProfileImageUrl(finalImageUrl);
+    setSelectedFile(null);
     onProfileChange?.({
       name: result.data.name,
       email: result.data.email ?? "",
-      profileImageUrl: result.data.profileImageUrl ?? null,
+      profileImageUrl: finalImageUrl || result.data.profileImageUrl || null,
     });
     setIsEditingProfile(false);
   };
@@ -141,14 +146,16 @@ export default function TopNavbar({
           aria-expanded={isProfileOpen}
           aria-label={t("common.profile")}
         >
-          <S.ProfileAvatar>{profileInitial}</S.ProfileAvatar>
+          <S.ProfileAvatar $imageUrl={currentProfileImageUrl}>
+            {currentProfileImageUrl ? null : profileInitial}
+          </S.ProfileAvatar>
           <S.TeacherNameText>{teacherName} {t("common.teacherSuffix")}</S.TeacherNameText>
         </S.UserProfileWrapper>
 
         {isProfileOpen ? (
           <S.ProfilePanel role="dialog" aria-label={t("common.profile")}>
-            <S.ProfilePhoto $imageUrl={teacherProfileImageUrl ?? ""}>
-              {teacherProfileImageUrl ? null : profileInitial}
+            <S.ProfilePhoto $imageUrl={currentProfileImageUrl}>
+              {currentProfileImageUrl ? null : profileInitial}
             </S.ProfilePhoto>
             <S.ProfileName>{teacherName}</S.ProfileName>
             <S.ProfileEmail>{teacherEmail}</S.ProfileEmail>

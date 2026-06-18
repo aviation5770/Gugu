@@ -56,7 +56,7 @@ type TeacherClassContextValue = {
   updateStudent: (
     studentId: string,
     input: Partial<Pick<TeacherStudent, "name" | "memo" | "birth_date">>,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   resetStudentRecord: (studentId: string) => void;
   resetClassRecords: (classId: string) => void;
   deleteStudent: (studentId: string) => Promise<void>;
@@ -78,23 +78,17 @@ function safeNumber(value: string, fallback: number) {
 }
 
 function getBirthdayPassword(birthDate: string) {
-  const monthDayMatch = birthDate.match(/(?:^|\D)(\d{1,2})\D+(\d{1,2})(?:\D|$)/);
-
-  if (monthDayMatch) {
-    return `${monthDayMatch[1].padStart(2, "0")}${monthDayMatch[2].padStart(2, "0")}`;
-  }
-
   const digits = birthDate.replace(/\D/g, "");
 
-  if (digits.length >= 4) {
-    return digits.slice(-4);
+  if (digits.length === 8) {
+    return digits.slice(2);
   }
 
-  if (digits.length === 3) {
-    return `0${digits}`;
+  if (digits.length === 6) {
+    return digits;
   }
 
-  return digits;
+  return "";
 }
 
 function createOptimisticClass(input: CreateTeacherClassInput): TeacherClass {
@@ -110,7 +104,7 @@ function createOptimisticClass(input: CreateTeacherClassInput): TeacherClass {
     teacher_name: "선생님",
     class_code: "생성 중",
     student_count: studentCount,
-    todo_alert: "캘린더에서 다음 시험 일정을 등록해 주세요",
+    todo_alert: "",
     profile_color: CLASS_THEME_COLORS[(grade + room) % CLASS_THEME_COLORS.length],
     header_color: CLASS_THEME_COLORS[(grade + room + 2) % CLASS_THEME_COLORS.length],
     description: `${grade}학년 ${room}반 클래스입니다.`,
@@ -290,7 +284,7 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
 
       if (!result.success) {
         window.alert(result.error);
-        return;
+        return false;
       }
 
       setStudents((prev) =>
@@ -302,9 +296,10 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
                 birth_date: result.data.birth_date,
                 password: getBirthdayPassword(result.data.birth_date),
               }
-            : student,
+          : student,
         ),
       );
+      return true;
     },
     [students],
   );

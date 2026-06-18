@@ -73,7 +73,7 @@ export default function StudentPlayPage() {
       if (!result.success) {
         // If session is invalid, redirect to student login
         if (result.error && result.error.includes("로그인")) {
-          router.replace('/login/student');
+          router.replace("/login/student");
           return;
         }
 
@@ -89,7 +89,7 @@ export default function StudentPlayPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!isRunning) {

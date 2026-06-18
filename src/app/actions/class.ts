@@ -54,6 +54,16 @@ type ExamScheduleRow = {
   created_at: string;
 };
 
+type StudentRecordSummaryRow = {
+  id: string;
+  student_id: string;
+  problem_count: number;
+  correct_count: number;
+  accuracy: number;
+  elapsed_seconds: number;
+  mode: string;
+};
+
 type CreateClassInput = {
   className: string;
   studentCount: number;
@@ -131,25 +141,17 @@ function getBirthdayPassword(birthDate: string | null) {
     return "";
   }
 
-  const monthDayMatch = birthDate.match(
-    /(?:^|\D)(\d{1,2})\D+(\d{1,2})(?:\D|$)/,
-  );
-
-  if (monthDayMatch) {
-    return `${monthDayMatch[1].padStart(2, "0")}${monthDayMatch[2].padStart(2, "0")}`;
-  }
-
   const digits = birthDate.replace(/\D/g, "");
 
-  if (digits.length >= 4) {
-    return digits.slice(-4);
+  if (digits.length === 8) {
+    return digits.slice(2);
   }
 
-  if (digits.length === 3) {
-    return `0${digits}`;
+  if (digits.length === 6) {
+    return digits;
   }
 
-  return digits;
+  return "";
 }
 
 function extractGradeRoom(className: string) {
@@ -199,7 +201,7 @@ function toTeacherClass(row: ClassRow, teacherName: string): TeacherClass {
     teacher_name: teacherName,
     class_code: row.class_code,
     student_count: row.student_count,
-    todo_alert: "캘린더에서 다음 시험 일정을 등록해 주세요",
+    todo_alert: "",
     profile_color: colorForId(row.id),
     header_color: colorForId(row.id, 2),
     description: `${row.class_name} 클래스입니다. 학생 번호와 생일 기반 비밀번호로 로그인할 수 있습니다.`,
@@ -321,18 +323,8 @@ export async function loadTeacherWorkspaceAction(): Promise<
           )
           .in("student_id", studentIds)
           .neq("mode", "exam")
-          .returns<
-            Array<{
-              id: string;
-              student_id: string;
-              problem_count: number;
-              correct_count: number;
-              accuracy: number;
-              elapsed_seconds: number;
-              mode: string;
-            }>
-          >()
-      : { data: [] as any[], error: null };
+          .returns<StudentRecordSummaryRow[]>()
+      : { data: [] as StudentRecordSummaryRow[], error: null };
 
     if (recordError) {
       throw new Error(recordError.message);
@@ -607,6 +599,12 @@ export async function updateStudentAction({
   profileImageUrl,
 }: UpdateStudentInput): Promise<ActionResult<TeacherStudent>> {
   try {
+    const normalizedBirthDate = birthDate.trim();
+
+    if (!/^\d{6}$/.test(normalizedBirthDate)) {
+      throw new Error("생일은 숫자 6자리로 입력해 주세요.");
+    }
+
     const { teacherId } = await getTeacherId();
     const db = await getWritableClient();
     const { data: currentStudent, error: currentStudentError } = await db
@@ -644,7 +642,7 @@ export async function updateStudentAction({
       .from("students")
       .update({
         name: name.trim() || `${currentStudent.student_number}번 학생`,
-        birth_date: birthDate.trim() || null,
+        birth_date: normalizedBirthDate,
         memo: memo.trim() || null,
         profile_image_url: profileImageUrl?.trim() || null,
       })

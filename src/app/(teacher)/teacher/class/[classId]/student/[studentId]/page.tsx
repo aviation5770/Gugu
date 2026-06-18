@@ -8,23 +8,9 @@ import { formatRecordTime } from "../../../../../_data/mockTeacher";
 import { useTeacherClasses } from "../../../../../_context/TeacherClassContext";
 
 function getBirthdayPasswordPreview(birthDate: string) {
-  const monthDayMatch = birthDate.match(/(?:^|\D)(\d{1,2})\D+(\d{1,2})(?:\D|$)/);
-
-  if (monthDayMatch) {
-    return `${monthDayMatch[1].padStart(2, "0")}${monthDayMatch[2].padStart(2, "0")}`;
-  }
-
   const digits = birthDate.replace(/\D/g, "");
 
-  if (digits.length >= 4) {
-    return digits.slice(-4);
-  }
-
-  if (digits.length === 3) {
-    return `0${digits}`;
-  }
-
-  return digits;
+  return digits.length === 6 ? digits : "";
 }
 
 export default function StudentDetailPage() {
@@ -59,13 +45,22 @@ export default function StudentDetailPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    await updateStudent(student.id, {
+    const normalizedBirthDate = birthDate.replace(/\D/g, "");
+
+    if (!/^\d{6}$/.test(normalizedBirthDate)) {
+      window.alert("생일은 숫자 6자리로 입력해 주세요. 예: 070727");
+      return;
+    }
+
+    const isSaved = await updateStudent(student.id, {
       name: name.trim() || `${student.student_number}번 학생`,
-      birth_date: birthDate.trim(),
+      birth_date: normalizedBirthDate,
       memo: memo.trim(),
     });
-    // 저장 후 이전 화면으로 돌아가기
-    router.back();
+
+    if (isSaved) {
+      window.alert("학생 정보가 저장되었습니다.");
+    }
   };
 
   const handleResetRecord = () => {
@@ -104,11 +99,15 @@ export default function StudentDetailPage() {
               생일
               <S.Input
                 value={birthDate}
-                onChange={(event) => setBirthDate(event.target.value)}
-                placeholder="예: 7월 27일 또는 0727"
+                inputMode="numeric"
+                maxLength={6}
+                onChange={(event) =>
+                  setBirthDate(event.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="예: 070727"
               />
               <S.HelperText>
-                자동 로그인 비밀번호: {getBirthdayPasswordPreview(birthDate) || "생일 입력 시 생성"}
+                자동 로그인 비밀번호: {getBirthdayPasswordPreview(birthDate) || "숫자 6자리 입력 시 생성"}
               </S.HelperText>
             </S.Label>
           </S.FormGrid>

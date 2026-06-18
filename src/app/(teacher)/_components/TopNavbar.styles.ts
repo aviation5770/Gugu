@@ -106,10 +106,14 @@ export const UserProfileWrapper = styled.button`
   }
 `;
 
-export const ProfileAvatar = styled.div`
+export const ProfileAvatar = styled.div<{ $imageUrl?: string }>`
   width: 32px;
   height: 32px;
-  background-color: #2563eb;
+  background:
+    ${(props) =>
+      props.$imageUrl
+        ? `url(${props.$imageUrl}) center / cover`
+        : "#2563eb"};
   color: #ffffff;
   border-radius: 50%;
   display: flex;

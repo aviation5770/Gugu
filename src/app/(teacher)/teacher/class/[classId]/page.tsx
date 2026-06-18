@@ -10,7 +10,11 @@ import { useTeacherClasses } from "../../../_context/TeacherClassContext";
 export default function TeacherClassPage() {
   const params = useParams<{ classId: string }>();
   const router = useRouter();
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortMode, setSortMode] = useState<"numberAsc" | "numberDesc" | "accuracy">(
+    "numberAsc",
+  );
+  const [isStudentListExpanded, setIsStudentListExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
   const {
     classes,
     addStudent,
@@ -25,13 +29,24 @@ export default function TeacherClassPage() {
   const students = useMemo(() => {
     const classStudents = getStudentsByClass(params.classId);
 
-    return [...classStudents].sort((a, b) =>
-      sortOrder === "asc"
-        ? a.student_number - b.student_number
-        : b.student_number - a.student_number,
-    );
-  }, [getStudentsByClass, params.classId, sortOrder]);
+    return [...classStudents].sort((a, b) => {
+      if (sortMode === "numberDesc") {
+        return b.student_number - a.student_number;
+      }
+
+      if (sortMode === "accuracy") {
+        if (b.accuracy !== a.accuracy) {
+          return b.accuracy - a.accuracy;
+        }
+
+        return (a.best_time || Number.POSITIVE_INFINITY) - (b.best_time || Number.POSITIVE_INFINITY);
+      }
+
+      return a.student_number - b.student_number;
+    });
+  }, [getStudentsByClass, params.classId, sortMode]);
   const rankings = getRankings(params.classId);
+  const displayedStudents = isStudentListExpanded ? students : students.slice(0, 5);
 
   if (!classItem) {
     return (
@@ -68,8 +83,6 @@ export default function TeacherClassPage() {
     await updateClassName(classItem.id, className);
   };
 
-  const [copied, setCopied] = useState(false);
-
   const handleCopyClassCode = async () => {
     if (!classItem?.class_code) return;
 
@@ -101,15 +114,16 @@ export default function TeacherClassPage() {
 
   return (
     <S.DetailContainer>
-        <S.Banner $bgColor={classItem.header_color}>
+      <S.Banner $bgColor={classItem.header_color}>
         <S.BannerTitle>{classItem.class_name}</S.BannerTitle>
         <S.BannerDescription>{classItem.description}</S.BannerDescription>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <S.CodeBadge>{classItem.class_code}</S.CodeBadge>
-          <S.UtilityButton type="button" onClick={handleCopyClassCode}>
-            {copied ? "복사됨" : "복사"}
-          </S.UtilityButton>
-        </div>
+        <S.CodeBadge
+          type="button"
+          onClick={handleCopyClassCode}
+          title="수업 코드 복사"
+        >
+          {copied ? `${classItem.class_code} · 복사됨` : classItem.class_code}
+        </S.CodeBadge>
       </S.Banner>
 
       <S.TabGrid>
@@ -136,10 +150,6 @@ export default function TeacherClassPage() {
           <S.Panel>
             <S.PanelTitle>게시판</S.PanelTitle>
             <S.NoticeList>
-              <S.NoticeItem onClick={() => router.push('/teacher/calendar')} style={{ cursor: 'pointer' }}>
-                <strong>{classItem.todo_alert}</strong>
-                <p>학생들은 시험 전까지 오답 노트를 정리하고 타임어택 기록을 한 번 이상 제출합니다.</p>
-              </S.NoticeItem>
               {classEvents.length === 0 ? (
                 <S.NoticeItem>
                   <strong>등록된 클래스 일정이 없습니다</strong>
@@ -163,12 +173,16 @@ export default function TeacherClassPage() {
                 <S.UtilityButton type="button" onClick={handleAddStudent}>
                   학생 추가
                 </S.UtilityButton>
-                <S.UtilityButton
-                  type="button"
-                  onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
+                <S.FilterSelect
+                  value={sortMode}
+                  onChange={(event) =>
+                    setSortMode(event.target.value as "numberAsc" | "numberDesc" | "accuracy")
+                  }
                 >
-                  번호 {sortOrder === "asc" ? "오름차순" : "내림차순"}
-                </S.UtilityButton>
+                  <option value="numberAsc">번호 오름차순</option>
+                  <option value="numberDesc">번호 내림차순</option>
+                  <option value="accuracy">정확도순</option>
+                </S.FilterSelect>
                 <S.DangerButton
                   type="button"
                   onClick={() => resetClassRecords(classItem.id)}
@@ -178,7 +192,7 @@ export default function TeacherClassPage() {
               </S.PanelActions>
             </S.StudentListHeader>
             <S.StudentRows>
-              {students.map((student) => (
+              {displayedStudents.map((student) => (
                 <S.StudentRow
                   key={student.id}
                   href={`/teacher/class/${classItem.id}/student/${student.id}`}
@@ -190,6 +204,14 @@ export default function TeacherClassPage() {
                 </S.StudentRow>
               ))}
             </S.StudentRows>
+            {students.length > 5 ? (
+              <S.ListToggleButton
+                type="button"
+                onClick={() => setIsStudentListExpanded((prev) => !prev)}
+              >
+                {isStudentListExpanded ? "리스트 접기" : `더보기 (${students.length - 5}명)`}
+              </S.ListToggleButton>
+            ) : null}
           </S.Panel>
         </div>
 

@@ -48,7 +48,7 @@ export const BannerDescription = styled.p`
   color: rgba(255, 255, 255, 0.88);
 `;
 
-export const CodeBadge = styled.span`
+export const CodeBadge = styled.button`
   position: absolute;
   right: 24px;
   bottom: 24px;
@@ -58,6 +58,13 @@ export const CodeBadge = styled.span`
   border-radius: 999px;
   font-size: 13px;
   font-weight: 800;
+  background-color: transparent;
+  color: #ffffff;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.14);
+  }
 `;
 
 export const TabGrid = styled.div`
@@ -151,6 +158,23 @@ export const StudentRows = styled.div`
   gap: 10px;
 `;
 
+export const ListToggleButton = styled.button`
+  width: 100%;
+  min-height: 40px;
+  margin-top: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background-color: #ffffff;
+  color: #083b4d;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f9fafb;
+  }
+`;
+
 export const StudentListHeader = styled.div`
   display: flex;
   align-items: center;
@@ -173,6 +197,22 @@ export const PanelActions = styled.div`
 export const UtilityButton = styled.button`
   min-height: 36px;
   padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  background-color: #ffffff;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f9fafb;
+  }
+`;
+
+export const FilterSelect = styled.select`
+  min-height: 36px;
+  padding: 0 34px 0 12px;
   border: 1px solid #e5e7eb;
   border-radius: 9px;
   background-color: #ffffff;
