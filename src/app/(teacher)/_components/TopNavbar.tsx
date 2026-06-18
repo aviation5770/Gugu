@@ -1,9 +1,10 @@
 "use client";
 
+import type { DragEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import * as S from "./TopNavbar.styles";
-import Image from "next/image";
+import NextImage from "next/image";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useI18n } from "@/i18n/LocaleProvider";
 import {
@@ -11,7 +12,6 @@ import {
   teacherLogoutAction,
   updateTeacherProfileAction,
 } from "@/app/actions/auth";
-import { supabase } from "@/utils/supabase";
 
 interface TopNavbarProps {
   teacherName: string;
@@ -25,6 +25,58 @@ interface TopNavbarProps {
   }) => void;
 }
 
+const PROFILE_IMAGE_SIZE = 320;
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("이미지 파일을 읽을 수 없습니다."));
+    };
+    reader.onerror = () => reject(new Error("이미지 파일을 읽을 수 없습니다."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function resizeProfileImage(file: File) {
+  const dataUrl = await readFileAsDataUrl(file);
+
+  return new Promise<string>((resolve, reject) => {
+    const image = new window.Image();
+
+    image.onload = () => {
+      const scale = Math.min(
+        PROFILE_IMAGE_SIZE / image.width,
+        PROFILE_IMAGE_SIZE / image.height,
+        1,
+      );
+      const width = Math.max(1, Math.round(image.width * scale));
+      const height = Math.max(1, Math.round(image.height * scale));
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        reject(new Error("이미지를 처리할 수 없습니다."));
+        return;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      context.drawImage(image, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
+    };
+
+    image.onerror = () => reject(new Error("이미지 파일을 불러올 수 없습니다."));
+    image.src = dataUrl;
+  });
+}
+
 export default function TopNavbar({
   teacherName,
   teacherEmail,
@@ -36,37 +88,54 @@ export default function TopNavbar({
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileName, setProfileName] = useState(teacherName);
   const [profileEmail, setProfileEmail] = useState(teacherEmail);
-  const [profileImageUrl, setProfileImageUrl] = useState(teacherProfileImageUrl ?? "");
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [feedback, setFeedback] = useState("");
   const router = useRouter();
   const { t } = useI18n();
   const profileInitial = teacherName.trim().slice(0, 2) || "T";
-  const currentProfileImageUrl = profileImageUrl || teacherProfileImageUrl || "";
+  const currentProfileImageUrl = profileImageUrl ?? teacherProfileImageUrl ?? "";
+
+  const handleProfileImageFile = async (file?: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setFeedback("이미지 파일만 업로드할 수 있습니다.");
+      return;
+    }
+
+    setFeedback("");
+    setIsProcessingImage(true);
+
+    try {
+      const resizedImageUrl = await resizeProfileImage(file);
+      setSelectedFile(file);
+      setProfileImageUrl(resizedImageUrl);
+    } catch (error) {
+      console.error(error);
+      setFeedback("이미지를 처리하지 못했습니다. 다른 파일을 선택해 주세요.");
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
+
+  const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setIsDragActive(false);
+    void handleProfileImageFile(event.dataTransfer.files.item(0));
+  };
 
   const handleProfileSave = async () => {
     setFeedback("");
-    let finalImageUrl = profileImageUrl;
+    const finalImageUrl = profileImageUrl ?? teacherProfileImageUrl ?? "";
 
-    if (selectedFile) {
-      try {
-        const path = `profiles/teachers/${Date.now()}_${selectedFile.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from("profiles")
-          .upload(path, selectedFile, { cacheControl: "3600", upsert: true });
-
-        if (uploadError) {
-          setFeedback("이미지 업로드에 실패했습니다. URL로 입력해 주세요.");
-          return;
-        } else {
-          const { data } = supabase.storage.from("profiles").getPublicUrl(path);
-          finalImageUrl = data.publicUrl;
-        }
-      } catch (err) {
-        console.error(err);
-        setFeedback("이미지 업로드 중 오류가 발생했습니다.");
-        return;
-      }
+    if (isProcessingImage) {
+      setFeedback("이미지 처리 중입니다. 잠시 후 다시 저장해 주세요.");
+      return;
     }
 
     const result = await updateTeacherProfileAction({
@@ -124,7 +193,7 @@ export default function TopNavbar({
         </S.ToggleButton>
         <S.LogoLink href="/teacher/home">
           <S.LogoImageContainer>
-            <Image
+            <NextImage
               src="/images/gugu.svg"
               alt="Gugu Logo"
               fill
@@ -154,15 +223,37 @@ export default function TopNavbar({
 
         {isProfileOpen ? (
           <S.ProfilePanel role="dialog" aria-label={t("common.profile")}>
-            <S.ProfilePhoto $imageUrl={currentProfileImageUrl}>
-              {currentProfileImageUrl ? null : profileInitial}
-            </S.ProfilePhoto>
-            <S.ProfileName>{teacherName}</S.ProfileName>
-            <S.ProfileEmail>{teacherEmail}</S.ProfileEmail>
-            {feedback ? <S.ProfileFeedback>{feedback}</S.ProfileFeedback> : null}
-
             {isEditingProfile ? (
               <S.ProfileEditForm>
+                <S.ProfileDropZone
+                  $isActive={isDragActive}
+                  onDragEnter={(event) => {
+                    event.preventDefault();
+                    setIsDragActive(true);
+                  }}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDragLeave={() => setIsDragActive(false)}
+                  onDrop={handleDrop}
+                >
+                  <S.ProfileDropPreview $imageUrl={currentProfileImageUrl}>
+                    {currentProfileImageUrl ? null : profileInitial}
+                  </S.ProfileDropPreview>
+                  <S.ProfileDropText>
+                    {isProcessingImage
+                      ? "이미지 처리 중..."
+                      : "이미지를 드래그하거나 클릭해서 업로드"}
+                  </S.ProfileDropText>
+                  {selectedFile ? (
+                    <S.ProfileFileName>{selectedFile.name}</S.ProfileFileName>
+                  ) : null}
+                  <S.HiddenFileInput
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) =>
+                      void handleProfileImageFile(event.target.files?.item(0))
+                    }
+                  />
+                </S.ProfileDropZone>
                 <S.ProfileInput
                   value={profileName}
                   onChange={(event) => setProfileName(event.target.value)}
@@ -173,17 +264,21 @@ export default function TopNavbar({
                   onChange={(event) => setProfileEmail(event.target.value)}
                   placeholder="이메일"
                 />
-                <S.ProfileInput
-                  value={profileImageUrl}
-                  onChange={(event) => setProfileImageUrl(event.target.value)}
-                  placeholder="프로필 사진 URL"
-                />
-                <input type="file" accept="image/*" onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)} />
                 <S.ProfileActionButton type="button" onClick={handleProfileSave}>
                   저장
                 </S.ProfileActionButton>
               </S.ProfileEditForm>
-            ) : null}
+            ) : (
+              <>
+                <S.ProfilePhoto $imageUrl={currentProfileImageUrl}>
+                  {currentProfileImageUrl ? null : profileInitial}
+                </S.ProfilePhoto>
+                <S.ProfileName>{teacherName}</S.ProfileName>
+                <S.ProfileEmail>{teacherEmail}</S.ProfileEmail>
+              </>
+            )}
+
+            {feedback ? <S.ProfileFeedback>{feedback}</S.ProfileFeedback> : null}
 
             <S.ProfileActionList>
               <S.ProfileActionButton
@@ -192,6 +287,7 @@ export default function TopNavbar({
                   setProfileName(teacherName);
                   setProfileEmail(teacherEmail);
                   setProfileImageUrl(teacherProfileImageUrl ?? "");
+                  setSelectedFile(null);
                   setIsEditingProfile((prev) => !prev);
                 }}
               >

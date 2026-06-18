@@ -180,7 +180,7 @@ export const ProfileEditForm = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 0;
 `;
 
 export const ProfileInput = styled.input`
@@ -197,6 +197,68 @@ export const ProfileInput = styled.input`
     border-color: #083b4d;
     box-shadow: 0 0 0 3px rgba(8, 59, 77, 0.12);
   }
+`;
+
+export const ProfileDropZone = styled.label<{ $isActive?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 12px;
+  border: 1px dashed ${(props) => (props.$isActive ? "#083b4d" : "#d1d5db")};
+  border-radius: 12px;
+  background-color: ${(props) => (props.$isActive ? "#f0f9ff" : "#f9fafb")};
+  color: #374151;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+
+  &:hover {
+    border-color: #083b4d;
+    background-color: #f0f9ff;
+  }
+`;
+
+export const ProfileDropPreview = styled.div<{ $imageUrl?: string }>`
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background:
+    ${(props) =>
+      props.$imageUrl
+        ? `url(${props.$imageUrl}) center / cover`
+        : "linear-gradient(135deg, #2563eb, #9145d4)"};
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+`;
+
+export const ProfileDropText = styled.span`
+  max-width: 180px;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+`;
+
+export const ProfileFileName = styled.span`
+  max-width: 210px;
+  overflow: hidden;
+  color: #6b7280;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const HiddenFileInput = styled.input`
+  display: none;
 `;
 
 export const ProfileName = styled.strong`
