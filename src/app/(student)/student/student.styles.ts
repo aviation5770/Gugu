@@ -508,15 +508,10 @@ export const ToggleLine = styled.label`
   font-weight: 900;
 `;
 
-export const PrimaryPlayActions = styled.div`
+export const PrimaryPlayActions = styled.div<{ $columns?: number }>`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(${({ $columns = 2 }) => $columns}, 1fr);
   gap: 12px;
-  margin-top: 20px;
-
-  @media (max-width: 560px) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 export const StartButton = styled.button<{
