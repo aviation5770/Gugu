@@ -178,6 +178,21 @@ export default function StudentPracticePage() {
       setIsRunning(false);
       setShowReviewList(nextAttempts.some((attempt) => !attempt.isCorrect));
       const totalElapsed = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
+      // persist last attempts locally so 오답노트 page can show them
+      try {
+        const payload = {
+          mode: isExam ? "exam" : mode,
+          problemCount,
+          correctCount: nextCorrectCount,
+          elapsedSeconds: totalElapsed,
+          attempts: nextAttempts,
+          endedAt: Date.now(),
+        };
+        localStorage.setItem("last_attempts", JSON.stringify(payload));
+      } catch {
+        /* ignore storage errors */
+      }
+
       const result = await submitStudentRecordAction({
         mode: isExam ? "exam" : mode,
         problemCount,
@@ -230,6 +245,21 @@ export default function StudentPracticePage() {
       setIsRunning(false);
       setShowReviewList(nextAttempts.some((attempt) => !attempt.isCorrect));
       const totalElapsed = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
+      // persist last attempts locally so 오답노트 page can show them
+      try {
+        const payload = {
+          mode: isExam ? "exam" : mode,
+          problemCount,
+          correctCount,
+          elapsedSeconds: totalElapsed,
+          attempts: nextAttempts,
+          endedAt: Date.now(),
+        };
+        localStorage.setItem("last_attempts", JSON.stringify(payload));
+      } catch {
+        /* ignore storage errors */
+      }
+
       const result = await submitStudentRecordAction({
         mode: isExam ? "exam" : mode,
         problemCount,
@@ -394,7 +424,16 @@ export default function StudentPracticePage() {
                     <S.StartButton type="button" $tone="purple" onClick={() => startSession(false)}>
                       연습하기
                     </S.StartButton>
-                    <S.StartButton type="button" $tone="green" onClick={() => setShowReviewList((p) => !p)}>
+                    {workspace.activeExam ? (
+                      <S.StartButton type="button" $tone="orange" onClick={() => router.push("/student/exam")}>
+                        시험보기
+                      </S.StartButton>
+                    ) : (
+                      <S.StartButton type="button" $tone="orange" disabled>
+                        시험보기
+                      </S.StartButton>
+                    )}
+                    <S.StartButton type="button" $tone="green" onClick={() => router.push("/student/wrong")}>
                       오답노트
                     </S.StartButton>
                   </>

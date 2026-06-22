@@ -33,6 +33,8 @@ create table if not exists public.exam_schedules (
   title text not null,
   starts_at timestamptz not null,
   ends_at timestamptz not null,
+  problem_count integer,
+  time_limit_seconds integer,
   created_at timestamptz not null default now()
 );
 

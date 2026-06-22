@@ -39,6 +39,8 @@ type CreateScheduleEventInput = {
   date: string;
   startTime?: string;
   endTime?: string;
+  problemCount?: number;
+  durationSeconds?: number;
 };
 
 type TeacherClassContextValue = {
@@ -386,6 +388,8 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
         title,
         startsAt,
         endsAt,
+        problemCount: input.problemCount,
+        durationSeconds: input.durationSeconds,
       }).then((result) => {
         if (!result.success) {
           setEvents((prev) => prev.filter((item) => item.id !== event.id));

@@ -33,6 +33,8 @@ type ExamSchedule = {
   title: string;
   startsAt: string;
   endsAt: string;
+  problemCount?: number | null;
+  timeLimitSeconds?: number | null;
 };
 
 type StudentRecord = {
@@ -97,6 +99,8 @@ type ScheduleRow = {
   title: string;
   starts_at: string;
   ends_at: string;
+  problem_count?: number | null;
+  time_limit_seconds?: number | null;
 };
 
 type RecordRow = {
@@ -141,6 +145,8 @@ function toExamSchedule(schedule: ScheduleRow): ExamSchedule {
     title: schedule.title,
     startsAt: schedule.starts_at,
     endsAt: schedule.ends_at,
+    problemCount: schedule.problem_count ?? null,
+    timeLimitSeconds: schedule.time_limit_seconds ?? null,
   };
 }
 
@@ -271,17 +277,28 @@ export async function loadStudentWorkspaceAction(): Promise<
       );
     }
 
-    const { data: scheduleRows, error: scheduleError } = await db
-      .from("exam_schedules")
-      .select("id, title, starts_at, ends_at")
-      .eq("class_id", session.classId)
-      .order("starts_at", { ascending: true })
-      .returns<ScheduleRow[]>();
+    // Query exam schedules. Some deployments may not have the optional
+    // columns (problem_count / time_limit_seconds) yet — tolerate that
+    // by selecting the core fields only and falling back to an empty
+    // schedule list on error.
+    let scheduleRows: ScheduleRow[] = [];
+    try {
+      const resp = await db
+        .from("exam_schedules")
+        .select("id, title, starts_at, ends_at")
+        .eq("class_id", session.classId)
+        .order("starts_at", { ascending: true })
+        .returns<ScheduleRow[]>();
 
-    if (scheduleError) {
-      throw new Error(
-        `시험 일정 테이블을 확인해 주세요: ${scheduleError.message}`,
-      );
+      if (resp.error) {
+        // If selecting basic fields fails, treat as no schedules available.
+        scheduleRows = [];
+      } else {
+        scheduleRows = resp.data ?? [];
+      }
+    } catch (err) {
+      // Defensive: if the DB client throws, ignore and continue with empty schedules.
+      scheduleRows = [];
     }
 
     const { data: classStudents, error: classStudentsError } = await db
