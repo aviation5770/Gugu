@@ -110,7 +110,10 @@ function normalizeClassCode(code: string) {
 }
 
 function normalizeBirthDate(birthDate: string) {
-  const digits = normalizeRequiredText(birthDate, "생년월일").replace(/\D/g, "");
+  const digits = normalizeRequiredText(birthDate, "생년월일").replace(
+    /\D/g,
+    "",
+  );
 
   if (digits.length !== 6 && digits.length !== 8) {
     throw new Error("생년월일은 6자리 또는 8자리 숫자로 입력해 주세요.");
@@ -120,7 +123,10 @@ function normalizeBirthDate(birthDate: string) {
 }
 
 function parseStudentNumber(classNumber: string) {
-  const digits = normalizeRequiredText(classNumber, "학반번호").replace(/\D/g, "");
+  const digits = normalizeRequiredText(classNumber, "학반번호").replace(
+    /\D/g,
+    "",
+  );
 
   if (!digits) {
     throw new Error("학반번호는 숫자로 입력해 주세요.");
@@ -272,7 +278,10 @@ export async function teacherLoginAction({
   password,
 }: TeacherLoginInput): Promise<ActionResult<TeacherSession>> {
   try {
-    const normalizedEmail = normalizeRequiredText(email, "이메일").toLowerCase();
+    const normalizedEmail = normalizeRequiredText(
+      email,
+      "이메일",
+    ).toLowerCase();
     const normalizedPassword = normalizeRequiredText(password, "비밀번호");
     const supabase = await createClient();
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -331,12 +340,18 @@ export async function requestTeacherPasswordResetAction({
   email,
 }: PasswordResetInput): Promise<ActionResult<null>> {
   try {
-    const normalizedEmail = normalizeRequiredText(email, "이메일").toLowerCase();
+    const normalizedEmail = normalizeRequiredText(
+      email,
+      "이메일",
+    ).toLowerCase();
     const supabase = await createClient();
     const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/login/teacher`;
-    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo,
-    });
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      normalizedEmail,
+      {
+        redirectTo,
+      },
+    );
 
     if (error) {
       throw new Error(error.message);
@@ -355,7 +370,10 @@ export async function updateTeacherProfileAction({
 }: TeacherProfileInput): Promise<ActionResult<TeacherSession>> {
   try {
     const normalizedName = normalizeRequiredText(name, "이름");
-    const normalizedEmail = normalizeRequiredText(email, "이메일").toLowerCase();
+    const normalizedEmail = normalizeRequiredText(
+      email,
+      "이메일",
+    ).toLowerCase();
     const supabase = await createClient();
     const { data, error } = await supabase.auth.getUser();
 
@@ -401,7 +419,9 @@ export async function updateTeacherProfileAction({
   }
 }
 
-export async function deleteTeacherAccountAction(): Promise<ActionResult<null>> {
+export async function deleteTeacherAccountAction(): Promise<
+  ActionResult<null>
+> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.getUser();
@@ -415,7 +435,9 @@ export async function deleteTeacherAccountAction(): Promise<ActionResult<null>> 
     }
 
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("계정 삭제에는 SUPABASE_SERVICE_ROLE_KEY 환경 변수가 필요합니다.");
+      throw new Error(
+        "계정 삭제에는 SUPABASE_SERVICE_ROLE_KEY 환경 변수가 필요합니다.",
+      );
     }
 
     const admin = await createAdminClient();
@@ -428,7 +450,9 @@ export async function deleteTeacherAccountAction(): Promise<ActionResult<null>> 
       throw new Error(profileError.message);
     }
 
-    const { error: deleteUserError } = await admin.auth.admin.deleteUser(data.user.id);
+    const { error: deleteUserError } = await admin.auth.admin.deleteUser(
+      data.user.id,
+    );
 
     if (deleteUserError) {
       throw new Error(deleteUserError.message);
@@ -443,7 +467,9 @@ export async function deleteTeacherAccountAction(): Promise<ActionResult<null>> 
   }
 }
 
-export async function getTeacherSessionAction(): Promise<ActionResult<TeacherSession | null>> {
+export async function getTeacherSessionAction(): Promise<
+  ActionResult<TeacherSession | null>
+> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.getUser();
@@ -498,7 +524,8 @@ export async function studentLoginAction({
 }: StudentLoginInput): Promise<ActionResult<StudentSession>> {
   try {
     const classRow = await findClassByCode(code);
-    const { studentNumber, classNumber: normalizedClassNumber } = parseStudentNumber(classNumber);
+    const { studentNumber, classNumber: normalizedClassNumber } =
+      parseStudentNumber(classNumber);
     const normalizedBirthDate = normalizeBirthDate(birthDate);
     const supabase = await createClient();
     const { data: student, error } = await supabase
@@ -516,7 +543,9 @@ export async function studentLoginAction({
       throw new Error("해당 수업에서 학생 번호를 찾을 수 없습니다.");
     }
 
-    const savedBirthDate = student.birth_date ? normalizeBirthDate(student.birth_date) : null;
+    const savedBirthDate = student.birth_date
+      ? normalizeBirthDate(student.birth_date)
+      : null;
 
     if (savedBirthDate && savedBirthDate !== normalizedBirthDate) {
       throw new Error("생년월일이 일치하지 않습니다.");
@@ -543,15 +572,19 @@ export async function studentLoginAction({
     };
     const cookieStore = await cookies();
 
-    cookieStore.set(STUDENT_SESSION_COOKIE, encodeURIComponent(JSON.stringify(session)), {
-      httpOnly: true,
-      maxAge: 60 * 60 * 6,
-      path: "/",
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-    });
+    cookieStore.set(
+      STUDENT_SESSION_COOKIE,
+      encodeURIComponent(JSON.stringify(session)),
+      {
+        httpOnly: true,
+        maxAge: 60 * 60 * 6,
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      },
+    );
 
-    revalidatePath("/student/play");
+    revalidatePath("/student/practice");
     revalidatePath("/student/ranking");
 
     return { success: true, data: session };
@@ -560,7 +593,9 @@ export async function studentLoginAction({
   }
 }
 
-export async function getStudentSessionAction(): Promise<ActionResult<StudentSession | null>> {
+export async function getStudentSessionAction(): Promise<
+  ActionResult<StudentSession | null>
+> {
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(STUDENT_SESSION_COOKIE)?.value;
@@ -582,7 +617,7 @@ export async function studentLogoutAction(): Promise<ActionResult<null>> {
   try {
     const cookieStore = await cookies();
     cookieStore.delete(STUDENT_SESSION_COOKIE);
-    revalidatePath("/student/play");
+    revalidatePath("/student/practice");
     revalidatePath("/student/ranking");
 
     return { success: true, data: null };

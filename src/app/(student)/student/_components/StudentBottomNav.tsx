@@ -5,8 +5,8 @@ import Link from "next/link";
 import * as S from "../student.styles";
 
 const NAV_ITEMS = [
-  { href: "/student/play", label: "연습", icon: "✦" },
-  { href: "/student/play?variant=exam", label: "시험", icon: "●" },
+  { href: "/student/practice", label: "연습", icon: "✦" },
+  { href: "/student/exam", label: "시험", icon: "●" },
   { href: "/student/ranking", label: "랭킹", icon: "▲" },
   { href: "/student", label: "내 정보", icon: "■" },
 ];

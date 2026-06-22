@@ -55,7 +55,7 @@ export default function StudentLoginPage() {
         return;
       }
 
-      router.push('/student/play');
+      router.push('/student/practice');
     });
   };
 

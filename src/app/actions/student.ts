@@ -373,7 +373,11 @@ export async function submitStudentRecordAction({
       throw new Error(error.message);
     }
 
-    revalidatePath("/student/play");
+    if (mode === "exam") {
+      revalidatePath("/student/exam");
+    } else {
+      revalidatePath("/student/practice");
+    }
     revalidatePath("/student/ranking");
     revalidatePath("/student");
 
