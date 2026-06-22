@@ -1,5 +1,5 @@
 import React from 'react';
-import AuthBackground from '../app/(auth)/_components/AuthBackground';
+import AuthBackground from '@/app/(auth)/_components/AuthBackground';
 
 export default function Loading() {
   return (
@@ -16,6 +16,7 @@ export default function Loading() {
       }}
     >
       <AuthBackground />
+
       <div
         style={{
           zIndex: 1,
@@ -25,13 +26,7 @@ export default function Loading() {
           gap: '16px',
         }}
       >
-        <svg
-          viewBox="0 0 100 100"
-          style={{
-            width: '60px',
-            height: '60px',
-          }}
-        >
+        <svg viewBox="0 0 100 100" style={{ width: '60px', height: '60px' }}>
           <style>{`
             @keyframes guguSpinner {
               0% { opacity: 1; }
@@ -50,7 +45,6 @@ export default function Loading() {
             .bar-7 { animation-delay: -0.9s; }
             .bar-8 { animation-delay: -1.05s; }
           `}</style>
-
           <rect className="spinner-bar bar-1" x="46" y="10" width="8" height="20" rx="4" transform="rotate(0 50 50)" />
           <rect className="spinner-bar bar-8" x="46" y="10" width="8" height="20" rx="4" transform="rotate(45 50 50)" />
           <rect className="spinner-bar bar-7" x="46" y="10" width="8" height="20" rx="4" transform="rotate(90 50 50)" />
@@ -60,15 +54,7 @@ export default function Loading() {
           <rect className="spinner-bar bar-3" x="46" y="10" width="8" height="20" rx="4" transform="rotate(270 50 50)" />
           <rect className="spinner-bar bar-2" x="46" y="10" width="8" height="20" rx="4" transform="rotate(315 50 50)" />
         </svg>
-
-        <span
-          style={{
-            color: '#083b4d',
-            fontWeight: 800,
-            fontSize: '16px',
-            letterSpacing: '-0.5px',
-          }}
-        >
+        <span style={{ color: '#083b4d', fontWeight: 800, fontSize: '16px' }}>
           불러오는 중입니다...
         </span>
       </div>

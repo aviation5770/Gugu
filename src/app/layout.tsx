@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
+import NextTopLoader from 'nextjs-toploader';
 import { LocaleProvider } from "@/i18n/LocaleProvider";
+import GlobalLoadingOverlay from "@/app/_components/GlobalLoadingOverlay";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE } from "@/i18n/config";
 
 const geistSans = Geist({
@@ -57,7 +59,11 @@ export default async function RootLayout({
   return (
     <html lang={locale} className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
-        <LocaleProvider initialLocale={locale}>{children}</LocaleProvider>
+        <LocaleProvider initialLocale={locale}>
+          <NextTopLoader />
+          {children}
+          <GlobalLoadingOverlay />
+        </LocaleProvider>
       </body>
     </html>
   );
