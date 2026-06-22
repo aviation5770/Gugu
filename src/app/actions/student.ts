@@ -59,6 +59,7 @@ type RankingRow = {
 export type StudentWorkspace = {
   profile: StudentProfile;
   schedules: ExamSchedule[];
+  nextExam: ExamSchedule | null;
   records: StudentRecord[];
   rankings: RankingRow[];
   activeExam: ExamSchedule | null;
@@ -310,6 +311,11 @@ export async function loadStudentWorkspaceAction(): Promise<
     }
 
     const schedules = scheduleRows.map(toExamSchedule);
+    const now = Date.now();
+    const nextExam =
+      schedules.find(
+        (schedule) => new Date(schedule.startsAt).getTime() > now,
+      ) ?? null;
     const myRecords = recordRows
       .filter((record) => record.student_id === session.id)
       .map(toStudentRecord);
@@ -328,6 +334,7 @@ export async function loadStudentWorkspaceAction(): Promise<
           profileImageUrl: studentRow.profile_image_url,
         },
         schedules,
+        nextExam,
         records: myRecords,
         rankings: buildRankings({
           students: classStudents,

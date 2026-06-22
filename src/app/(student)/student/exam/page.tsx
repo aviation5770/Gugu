@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import StudentAppChrome from "../_components/StudentAppChrome";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   loadStudentWorkspaceAction,
@@ -117,10 +117,8 @@ export default function StudentExamPage() {
     return () => window.clearInterval(timer);
   }, [isRunning, startedAt]);
 
-  const upcomingSchedule = useMemo(() => {
-    if (!workspace) return null;
-    return workspace.schedules[0] ?? null;
-  }, [workspace]);
+  const activeExam = workspace?.activeExam ?? null;
+  const nextExam = workspace?.nextExam ?? null;
 
   const wrongProblems = attempts.filter((attempt) => !attempt.isCorrect);
   const currentBookmarked = bookmarkedIndexes.includes(currentIndex);
@@ -153,6 +151,51 @@ export default function StudentExamPage() {
         ? prev.filter((index) => index !== currentIndex)
         : [...prev, currentIndex],
     );
+  };
+
+  const markDontKnow = async () => {
+    if (!currentProblem) return;
+
+    const submittedAttempt: AttemptedProblem = {
+      ...currentProblem,
+      index: currentIndex,
+      userAnswer: "",
+      isCorrect: false,
+      bookmarked: true,
+    };
+
+    const nextAttempts = [...attempts, submittedAttempt];
+    const nextIndex = currentIndex + 1;
+
+    setAttempts(nextAttempts);
+    setBookmarkedIndexes((prev) => (prev.includes(currentIndex) ? prev : [...prev, currentIndex]));
+    setAnswer("");
+
+    if (nextIndex >= problemCount) {
+      setIsRunning(false);
+      setShowReviewList(nextAttempts.some((attempt) => !attempt.isCorrect));
+      const totalElapsed = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
+      const result = await submitStudentRecordAction({
+        mode: "exam",
+        problemCount,
+        correctCount,
+        elapsedSeconds: totalElapsed,
+      });
+
+      if (!result.success) {
+        setResultMessage(result.error);
+        return;
+      }
+
+      const nextWrongCount = nextAttempts.filter((attempt) => !attempt.isCorrect).length;
+      setResultMessage(
+        `완료! ${correctCount}/${problemCount}문항, ${formatSeconds(totalElapsed)} · 오답 ${nextWrongCount}개`,
+      );
+      return;
+    }
+
+    setCurrentIndex(nextIndex);
+    setCurrentProblem(makeProblem(mode, selectedTables, nextIndex, isOrdered));
   };
 
   const submitAnswer = async () => {
@@ -243,20 +286,29 @@ export default function StudentExamPage() {
       <StudentAppChrome />
 
       <S.StudentPlayContainer>
-        {upcomingSchedule ? (
+        {activeExam ? (
           <S.StudentNotice>
-            <span>다가오는 시험: {upcomingSchedule.title}</span>
+            <span>시험 진행 중: {activeExam.title}</span>
             <span>
-              {new Date(upcomingSchedule.startsAt).toLocaleString("ko-KR")} - {" "}
-              {new Date(upcomingSchedule.endsAt).toLocaleTimeString("ko-KR", {
+              {new Date(activeExam.startsAt).toLocaleString("ko-KR")} - {" "}
+              {new Date(activeExam.endsAt).toLocaleTimeString("ko-KR", {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
             </span>
           </S.StudentNotice>
-        ) : (
-          <S.StudentNotice>등록된 시험 일정이 없습니다.</S.StudentNotice>
-        )}
+        ) : nextExam ? (
+          <S.StudentNotice>
+            <span>다가오는 시험: {nextExam.title}</span>
+            <span>
+              {new Date(nextExam.startsAt).toLocaleString("ko-KR")} - {" "}
+              {new Date(nextExam.endsAt).toLocaleTimeString("ko-KR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </S.StudentNotice>
+        ) : null}
 
         <S.PlayGrid>
           <S.PlayMainCard>
@@ -313,7 +365,7 @@ export default function StudentExamPage() {
                   <S.BookmarkButton
                     type="button"
                     $active={currentBookmarked}
-                    onClick={toggleBookmarkCurrent}
+                    onClick={markDontKnow}
                   >
                     {currentBookmarked ? "책갈피 완료" : "모르겠어요"}
                   </S.BookmarkButton>
@@ -346,7 +398,7 @@ export default function StudentExamPage() {
                   <S.ControlButton type="button" $tone="yellow" onClick={() => setAnswer("")}>
                     지우기
                   </S.ControlButton>
-                  <S.ControlButton type="button" $tone="mint" onClick={toggleBookmarkCurrent}>
+                  <S.ControlButton type="button" $tone="mint" onClick={markDontKnow}>
                     책갈피
                   </S.ControlButton>
                   <S.ControlButton type="button" $tone="blue" onClick={submitAnswer}>

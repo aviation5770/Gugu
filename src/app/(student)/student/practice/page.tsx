@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import StudentAppChrome from "../_components/StudentAppChrome";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   loadStudentWorkspaceAction,
@@ -117,10 +117,8 @@ export default function StudentPracticePage() {
     return () => window.clearInterval(timer);
   }, [isRunning, startedAt]);
 
-  const upcomingSchedule = useMemo(() => {
-    if (!workspace) return null;
-    return workspace.schedules[0] ?? null;
-  }, [workspace]);
+  // use server-provided nextExam (computed on server) to avoid client-side date logic
+  const upcomingSchedule = workspace?.nextExam ?? null;
 
   const wrongProblems = attempts.filter((attempt) => !attempt.isCorrect);
   const currentBookmarked = bookmarkedIndexes.includes(currentIndex);
@@ -147,13 +145,7 @@ export default function StudentPracticePage() {
     setCurrentProblem(makeProblem(mode, selectedTables, 0, isOrdered));
   };
 
-  const toggleBookmarkCurrent = () => {
-    setBookmarkedIndexes((prev) =>
-      prev.includes(currentIndex)
-        ? prev.filter((index) => index !== currentIndex)
-        : [...prev, currentIndex],
-    );
-  };
+  // bookmark toggling kept for potential future use
 
   const submitAnswer = async () => {
     if (!currentProblem) return;
@@ -215,6 +207,52 @@ export default function StudentPracticePage() {
     );
   };
 
+  // mark as '모르겠어요' and skip to next problem (bookmarked, incorrect)
+  const markDontKnow = async () => {
+    if (!currentProblem) return;
+
+    const submittedAttempt: AttemptedProblem = {
+      ...currentProblem,
+      index: currentIndex,
+      userAnswer: "",
+      isCorrect: false,
+      bookmarked: true,
+    };
+
+    const nextAttempts = [...attempts, submittedAttempt];
+    const nextIndex = currentIndex + 1;
+
+    setAttempts(nextAttempts);
+    setBookmarkedIndexes((prev) => (prev.includes(currentIndex) ? prev : [...prev, currentIndex]));
+    setAnswer("");
+
+    if (nextIndex >= problemCount) {
+      setIsRunning(false);
+      setShowReviewList(nextAttempts.some((attempt) => !attempt.isCorrect));
+      const totalElapsed = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
+      const result = await submitStudentRecordAction({
+        mode: isExam ? "exam" : mode,
+        problemCount,
+        correctCount,
+        elapsedSeconds: totalElapsed,
+      });
+
+      if (!result.success) {
+        setResultMessage(result.error);
+        return;
+      }
+
+      const nextWrongCount = nextAttempts.filter((attempt) => !attempt.isCorrect).length;
+      setResultMessage(
+        `완료! ${correctCount}/${problemCount}문항, ${formatSeconds(totalElapsed)} · 오답 ${nextWrongCount}개`,
+      );
+      return;
+    }
+
+    setCurrentIndex(nextIndex);
+    setCurrentProblem(makeProblem(mode, selectedTables, nextIndex, isOrdered));
+  };
+
   if (error) {
     return (
       <S.Shell>
@@ -254,9 +292,7 @@ export default function StudentPracticePage() {
               })}
             </span>
           </S.StudentNotice>
-        ) : (
-          <S.StudentNotice>등록된 시험 일정이 없습니다.</S.StudentNotice>
-        )}
+        ) : null}
 
         <S.PlayGrid>
           <S.PlayMainCard>
@@ -323,31 +359,35 @@ export default function StudentPracticePage() {
                   </S.CountButtonGrid>
                 </S.ColorSection>
 
-                {mode === "prime_random" ? (
-                  <S.ColorSection>
-                    <S.ColorSectionTitle>출제할 단</S.ColorSectionTitle>
-                    <S.TableChipGrid>
-                      {PRIME_TABLES.map((table) => (
-                        <S.TableChip
-                          key={table}
-                          type="button"
-                          $active={selectedTables.includes(table)}
-                          onClick={() => toggleTable(table)}
-                        >
-                          {table}단
-                        </S.TableChip>
-                      ))}
-                    </S.TableChipGrid>
-                    <S.ToggleLine>
-                      <input
-                        type="checkbox"
-                        checked={isOrdered}
-                        onChange={(event) => setIsOrdered(event.target.checked)}
-                      />
-                      선택한 단 순서대로 출제
-                    </S.ToggleLine>
-                  </S.ColorSection>
-                ) : null}
+                <S.ColorSection>
+                  <div style={{ minHeight: 120 }}>
+                    {mode === "prime_random" ? (
+                      <>
+                        <S.ColorSectionTitle>출제할 단</S.ColorSectionTitle>
+                        <S.TableChipGrid>
+                          {PRIME_TABLES.map((table) => (
+                            <S.TableChip
+                              key={table}
+                              type="button"
+                              $active={selectedTables.includes(table)}
+                              onClick={() => toggleTable(table)}
+                            >
+                              {table}단
+                            </S.TableChip>
+                          ))}
+                        </S.TableChipGrid>
+                        <S.ToggleLine>
+                          <input
+                            type="checkbox"
+                            checked={isOrdered}
+                            onChange={(event) => setIsOrdered(event.target.checked)}
+                          />
+                          선택한 단 순서대로 출제
+                        </S.ToggleLine>
+                      </>
+                    ) : null}
+                  </div>
+                </S.ColorSection>
 
                 <S.PrimaryPlayActions>
                   <>
@@ -356,14 +396,6 @@ export default function StudentPracticePage() {
                     </S.StartButton>
                     <S.StartButton type="button" $tone="green" onClick={() => setShowReviewList((p) => !p)}>
                       오답노트
-                    </S.StartButton>
-                    <S.StartButton
-                      type="button"
-                      $tone="orange"
-                      onClick={() => router.push('/student/exam')}
-                      disabled={!workspace.activeExam}
-                    >
-                      시험보기
                     </S.StartButton>
                   </>
                 </S.PrimaryPlayActions>
@@ -390,7 +422,7 @@ export default function StudentPracticePage() {
                   <S.BookmarkButton
                     type="button"
                     $active={currentBookmarked}
-                    onClick={toggleBookmarkCurrent}
+                    onClick={markDontKnow}
                   >
                     {currentBookmarked ? "책갈피 완료" : "모르겠어요"}
                   </S.BookmarkButton>
@@ -423,7 +455,7 @@ export default function StudentPracticePage() {
                   <S.ControlButton type="button" $tone="yellow" onClick={() => setAnswer("")}>
                     지우기
                   </S.ControlButton>
-                  <S.ControlButton type="button" $tone="mint" onClick={toggleBookmarkCurrent}>
+                  <S.ControlButton type="button" $tone="mint" onClick={markDontKnow}>
                     책갈피
                   </S.ControlButton>
                   <S.ControlButton type="button" $tone="blue" onClick={submitAnswer}>
