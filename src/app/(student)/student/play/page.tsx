@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import StudentAppChrome from "../_components/StudentAppChrome";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   loadStudentWorkspaceAction,
   submitStudentRecordAction,
@@ -77,6 +78,8 @@ export default function StudentPlayPage() {
   const [bookmarkedIndexes, setBookmarkedIndexes] = useState<number[]>([]);
   const [showReviewList, setShowReviewList] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isExamTab = searchParams?.get("variant") === "exam";
 
   useEffect(() => {
     let isMounted = true;
@@ -140,7 +143,7 @@ export default function StudentPlayPage() {
       return;
     }
 
-    setIsExam(nextIsExam);
+    setIsExam(nextIsExam || isExamTab);
     setIsRunning(true);
     setCurrentIndex(0);
     setCorrectCount(0);
@@ -250,19 +253,7 @@ export default function StudentPlayPage() {
 
   return (
     <S.Shell>
-      <S.Header>
-        <S.Brand>
-          <strong>{workspace.profile.className}</strong>
-          <span>
-            {workspace.profile.studentNumber}번 {workspace.profile.name}
-          </span>
-        </S.Brand>
-        <S.Nav>
-          <S.NavLink href="/student/play">연습/시험</S.NavLink>
-          <S.NavLink href="/student/ranking">랭킹보기</S.NavLink>
-          <S.NavLink href="/student">내 정보</S.NavLink>
-        </S.Nav>
-      </S.Header>
+      <StudentAppChrome />
 
       <S.StudentPlayContainer>
         {upcomingSchedule ? (
@@ -305,47 +296,53 @@ export default function StudentPlayPage() {
                   </S.GoalRing>
                 </S.LearningHero>
 
-                <S.ColorSection>
-                  <S.ColorSectionTitle>연습 종류</S.ColorSectionTitle>
-                  <S.ModeCardGrid>
-                    <S.ModeCardButton
-                      type="button"
-                      $active={mode === "prime_random"}
-                      $tone="mint"
-                      onClick={() => setMode("prime_random")}
-                    >
-                      <span>소수 구구단</span>
-                      <strong>11단부터 41단까지</strong>
-                    </S.ModeCardButton>
-                    <S.ModeCardButton
-                      type="button"
-                      $active={mode === "two_digit"}
-                      $tone="blue"
-                      onClick={() => setMode("two_digit")}
-                    >
-                      <span>두 자릿수 곱셈</span>
-                      <strong>빠르게 계산하기</strong>
-                    </S.ModeCardButton>
-                  </S.ModeCardGrid>
-                </S.ColorSection>
-
-                <S.ColorSection>
-                  <S.ColorSectionTitle>문제 수</S.ColorSectionTitle>
-                  <S.CountButtonGrid>
-                    {COUNTS.map((count) => (
-                      <S.CountButton
-                        key={count}
+                {!isExamTab ? (
+                  <S.ColorSection>
+                    <S.ColorSectionTitle>연습 종류</S.ColorSectionTitle>
+                    <S.ModeCardGrid>
+                      <S.ModeCardButton
                         type="button"
-                        $active={problemCount === count}
-                        onClick={() => setProblemCount(count)}
+                        $active={mode === "prime_random"}
+                        $tone="mint"
+                        onClick={() => setMode("prime_random")}
                       >
-                        {count}
-                      </S.CountButton>
-                    ))}
-                  </S.CountButtonGrid>
-                </S.ColorSection>
+                        <span>소수 구구단</span>
+                        <strong>11단부터 41단까지</strong>
+                      </S.ModeCardButton>
+                      <S.ModeCardButton
+                        type="button"
+                        $active={mode === "two_digit"}
+                        $tone="blue"
+                        onClick={() => setMode("two_digit")}
+                      >
+                        <span>두 자릿수 곱셈</span>
+                        <strong>빠르게 계산하기</strong>
+                      </S.ModeCardButton>
+                    </S.ModeCardGrid>
+                  </S.ColorSection>
+                ) : (
+                  <S.Muted>시험 모드 — 선생님이 설정한 문제/시간으로 진행됩니다.</S.Muted>
+                )}
 
-                {mode === "prime_random" ? (
+                {!isExamTab && (
+                  <S.ColorSection>
+                    <S.ColorSectionTitle>문제 수</S.ColorSectionTitle>
+                    <S.CountButtonGrid>
+                      {COUNTS.map((count) => (
+                        <S.CountButton
+                          key={count}
+                          type="button"
+                          $active={problemCount === count}
+                          onClick={() => setProblemCount(count)}
+                        >
+                          {count}
+                        </S.CountButton>
+                      ))}
+                    </S.CountButtonGrid>
+                  </S.ColorSection>
+                )}
+
+                {!isExamTab && mode === "prime_random" ? (
                   <S.ColorSection>
                     <S.ColorSectionTitle>출제할 단</S.ColorSectionTitle>
                     <S.TableChipGrid>
@@ -372,17 +369,28 @@ export default function StudentPlayPage() {
                 ) : null}
 
                 <S.PrimaryPlayActions>
-                  <S.StartButton type="button" $tone="purple" onClick={() => startSession(false)}>
-                    연습하기
-                  </S.StartButton>
-                  <S.StartButton
-                    type="button"
-                    $tone="orange"
-                    onClick={() => startSession(true)}
-                    disabled={!workspace.activeExam}
-                  >
-                    시험보기
-                  </S.StartButton>
+                  {!isExamTab ? (
+                    <>
+                      <S.StartButton type="button" $tone="purple" onClick={() => startSession(false)}>
+                        연습하기
+                      </S.StartButton>
+                      <S.StartButton type="button" $tone="green" onClick={() => setShowReviewList((p) => !p)}>
+                        오답노트
+                      </S.StartButton>
+                      <S.StartButton
+                        type="button"
+                        $tone="orange"
+                        onClick={() => startSession(true)}
+                        disabled={!workspace.activeExam}
+                      >
+                        시험보기
+                      </S.StartButton>
+                    </>
+                  ) : (
+                    <S.StartButton type="button" $tone="orange" onClick={() => startSession(true)} disabled={!workspace.activeExam}>
+                      시험 시작
+                    </S.StartButton>
+                  )}
                 </S.PrimaryPlayActions>
                 {!workspace.activeExam ? (
                   <S.PlayHint>시험보기는 선생님이 지정한 시간에만 열립니다.</S.PlayHint>

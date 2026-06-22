@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import StudentAppChrome from "../_components/StudentAppChrome";
 import { loadStudentWorkspaceAction } from "@/app/actions/student";
 import type { StudentWorkspace } from "@/app/actions/student";
 import * as S from "../student.styles";
@@ -57,17 +58,7 @@ export default function StudentRankingPage() {
 
   return (
     <S.Shell>
-      <S.Header>
-        <S.Brand>
-          <strong>{workspace.profile.className} 랭킹</strong>
-          <span>정확도와 속도 기준</span>
-        </S.Brand>
-        <S.Nav>
-          <S.NavLink href="/student/play">연습/시험</S.NavLink>
-          <S.NavLink href="/student/ranking">랭킹보기</S.NavLink>
-          <S.NavLink href="/student">내 정보</S.NavLink>
-        </S.Nav>
-      </S.Header>
+      <StudentAppChrome />
 
       <S.Container>
         <S.Panel>

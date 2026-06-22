@@ -9,6 +9,54 @@ export const Shell = styled.main`
   color: #111827;
 `;
 
+export const StudentTopBar = styled.div`
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border-bottom: 1px solid #eef2ff;
+`;
+
+export const StudentLogoMark = styled.a`
+  position: relative;
+  width: 96px;
+  height: 40px;
+  display: inline-block;
+`;
+
+export const StudentBottomNav = styled.nav`
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 8px 12px;
+  background-color: #ffffff;
+  border-top: 1px solid #e6f0ff;
+`;
+
+export const StudentBottomNavLink = styled(Link)<{ $active?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 72px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: ${(props) => (props.$active ? "#0ea5a4" : "#475569")};
+  background-color: ${(props) => (props.$active ? "#ecfeff" : "transparent")};
+  font-weight: 900;
+`;
+
 export const Header = styled.header`
   position: sticky;
   top: 0;
@@ -214,7 +262,11 @@ export const StudentPlayContainer = styled.div`
 export const StudentNotice = styled(Notice)`
   border-color: #b7e4ff;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(224, 247, 255, 0.94)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.86),
+      rgba(224, 247, 255, 0.94)
+    ),
     #e0f7ff;
   color: #176b87;
   box-shadow: 0 12px 24px rgba(56, 189, 248, 0.12);
@@ -236,8 +288,16 @@ export const PlayMainCard = styled.section`
   border: 1px solid #c7ecff;
   border-radius: 24px;
   background:
-    radial-gradient(circle at 15% 12%, rgba(255, 209, 101, 0.4), transparent 26%),
-    radial-gradient(circle at 88% 10%, rgba(239, 70, 110, 0.2), transparent 28%),
+    radial-gradient(
+      circle at 15% 12%,
+      rgba(255, 209, 101, 0.4),
+      transparent 26%
+    ),
+    radial-gradient(
+      circle at 88% 10%,
+      rgba(239, 70, 110, 0.2),
+      transparent 28%
+    ),
     linear-gradient(180deg, #bfe6ff 0%, #e7fbff 52%, #ffffff 100%);
   padding: 22px;
   box-shadow: 0 18px 40px rgba(56, 189, 248, 0.18);
@@ -377,18 +437,11 @@ export const ModeCardButton = styled.button<{
   padding: 18px;
   border: 3px solid ${(props) => (props.$active ? "#ffffff" : "transparent")};
   border-radius: 18px;
-  background:
-    ${(props) =>
-      props.$tone === "mint"
-        ? "linear-gradient(135deg, #4ade80, #2dd4bf)"
-        : "linear-gradient(135deg, #60a5fa, #818cf8)"};
+  background-color: ${(props) =>
+    props.$tone === "mint" ? "#10b981" : "#3b82f6"};
   color: #ffffff;
   text-align: left;
-  box-shadow: 0 14px 24px
-    ${(props) =>
-      props.$tone === "mint"
-        ? "rgba(45, 212, 191, 0.22)"
-        : "rgba(96, 165, 250, 0.24)"};
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
   cursor: pointer;
 
   span {
@@ -418,13 +471,12 @@ export const CountButtonGrid = styled.div`
 
 export const CountButton = styled.button<{ $active?: boolean }>`
   min-height: 64px;
-  border: 2px solid ${(props) => (props.$active ? "#8b5cf6" : "#ffffff")};
   border-radius: 18px;
-  background-color: ${(props) => (props.$active ? "#8b5cf6" : "#ffffff")};
-  color: ${(props) => (props.$active ? "#ffffff" : "#6d28d9")};
+  background-color: ${(props) => (props.$active ? "#ef4444" : "#ffffff")};
+  color: ${(props) => (props.$active ? "#ffffff" : "#374151")};
   font-size: 20px;
   font-weight: 900;
-  box-shadow: 0 10px 20px rgba(139, 92, 246, 0.14);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
   cursor: pointer;
 `;
 
@@ -437,13 +489,12 @@ export const TableChipGrid = styled.div`
 export const TableChip = styled.button<{ $active?: boolean }>`
   min-height: 42px;
   padding: 0 14px;
-  border: 2px solid ${(props) => (props.$active ? "#ffd165" : "#ffffff")};
   border-radius: 999px;
-  background-color: ${(props) => (props.$active ? "#ffd165" : "#ffffff")};
-  color: #083b4d;
+  background-color: ${(props) => (props.$active ? "#f59e0b" : "#ffffff")};
+  color: ${(props) => (props.$active ? "#083b4d" : "#374151")};
   font-size: 13px;
   font-weight: 900;
-  box-shadow: 0 8px 16px rgba(255, 209, 101, 0.18);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.06);
   cursor: pointer;
 `;
 
@@ -459,7 +510,7 @@ export const ToggleLine = styled.label`
 
 export const PrimaryPlayActions = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-top: 20px;
 
@@ -468,23 +519,22 @@ export const PrimaryPlayActions = styled.div`
   }
 `;
 
-export const StartButton = styled.button<{ $tone: "purple" | "orange" }>`
+export const StartButton = styled.button<{
+  $tone: "purple" | "orange" | "green";
+}>`
   min-height: 64px;
   border: 0;
   border-radius: 22px;
-  background:
-    ${(props) =>
-      props.$tone === "purple"
-        ? "linear-gradient(135deg, #a855f7, #6366f1)"
-        : "linear-gradient(135deg, #fb923c, #f43f5e)"};
+  background-color: ${(props) =>
+    props.$tone === "purple"
+      ? "#7c3aed"
+      : props.$tone === "orange"
+        ? "#f97316"
+        : "#10b981"};
   color: #ffffff;
   font-size: 18px;
   font-weight: 900;
-  box-shadow: 0 16px 24px
-    ${(props) =>
-      props.$tone === "purple"
-        ? "rgba(99, 102, 241, 0.28)"
-        : "rgba(244, 63, 94, 0.22)"};
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
   cursor: pointer;
 
   &:disabled {
@@ -506,7 +556,11 @@ export const StudyStage = styled.div`
   min-height: 580px;
   border-radius: 24px;
   background:
-    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.78), transparent 28%),
+    radial-gradient(
+      circle at 50% 100%,
+      rgba(255, 255, 255, 0.78),
+      transparent 28%
+    ),
     linear-gradient(180deg, #9ed5ff 0%, #caeff7 65%, #ffffff 100%);
   padding: 20px;
 `;
@@ -677,17 +731,16 @@ export const ControlButton = styled.button<{
   min-height: 78px;
   border: 0;
   border-radius: 24px;
-  background:
-    ${(props) =>
-      props.$tone === "yellow"
-        ? "linear-gradient(135deg, #ffd165, #fb923c)"
-        : props.$tone === "mint"
-          ? "linear-gradient(135deg, #5eead4, #14b8a6)"
-          : "linear-gradient(135deg, #818cf8, #4f46e5)"};
+  background-color: ${(props) =>
+    props.$tone === "yellow"
+      ? "#f59e0b"
+      : props.$tone === "mint"
+        ? "#06b6d4"
+        : "#4f46e5"};
   color: #ffffff;
   font-size: 16px;
   font-weight: 900;
-  box-shadow: 0 16px 24px rgba(79, 70, 229, 0.18);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.08);
   cursor: pointer;
 `;
 
@@ -695,7 +748,11 @@ export const StudentResultNotice = styled(StudentNotice)`
   margin-top: 16px;
   border-color: #bbf7d0;
   background:
-    linear-gradient(135deg, rgba(240, 253, 244, 0.94), rgba(220, 252, 231, 0.9)),
+    linear-gradient(
+      135deg,
+      rgba(240, 253, 244, 0.94),
+      rgba(220, 252, 231, 0.9)
+    ),
     #f0fdf4;
   color: #166534;
 `;

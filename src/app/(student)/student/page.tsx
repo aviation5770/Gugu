@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import StudentAppChrome from "./_components/StudentAppChrome";
 import {
   loadStudentWorkspaceAction,
   studentLogoutAction,
@@ -131,22 +132,13 @@ export default function StudentInfoPage() {
 
   return (
     <S.Shell>
-      <S.Header>
-        <S.Brand>
-          <strong>내 정보</strong>
-          <span>{workspace.profile.className} · {workspace.profile.studentNumber}번</span>
-        </S.Brand>
-        <S.Nav>
-          <S.NavLink href="/student/play">연습/시험</S.NavLink>
-          <S.NavLink href="/student/ranking">랭킹보기</S.NavLink>
-          <S.NavLink href="/student">내 정보</S.NavLink>
-        </S.Nav>
-      </S.Header>
+      <StudentAppChrome />
 
       <S.Container>
         <S.Grid>
           <S.Panel>
             <S.PanelTitle>프로필 정보</S.PanelTitle>
+            <S.Muted style={{ marginBottom: 12 }}>{workspace.profile.className} · {workspace.profile.studentNumber}번</S.Muted>
             <S.OptionGrid>
               <S.Field>
                 이름
