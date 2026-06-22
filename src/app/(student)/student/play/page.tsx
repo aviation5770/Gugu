@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -9,10 +10,19 @@ import {
 import type { StudentWorkspace } from "@/app/actions/student";
 import * as S from "../student.styles";
 
+type PracticeMode = "prime_random" | "two_digit";
+
 type Problem = {
   left: number;
   right: number;
   answer: number;
+};
+
+type AttemptedProblem = Problem & {
+  index: number;
+  userAnswer: string;
+  isCorrect: boolean;
+  bookmarked: boolean;
 };
 
 const PRIME_TABLES = [11, 13, 17, 19, 23, 29, 31, 37, 41];
@@ -25,7 +35,12 @@ function formatSeconds(seconds: number) {
   return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
 }
 
-function makeProblem(mode: string, selectedTables: number[], index: number, ordered: boolean): Problem {
+function makeProblem(
+  mode: PracticeMode,
+  selectedTables: number[],
+  index: number,
+  ordered: boolean,
+): Problem {
   if (mode === "two_digit") {
     const left = Math.floor(10 + Math.random() * 90);
     const right = Math.floor(10 + Math.random() * 90);
@@ -45,7 +60,7 @@ function makeProblem(mode: string, selectedTables: number[], index: number, orde
 export default function StudentPlayPage() {
   const [workspace, setWorkspace] = useState<StudentWorkspace | null>(null);
   const [error, setError] = useState("");
-  const [mode, setMode] = useState("prime_random");
+  const [mode, setMode] = useState<PracticeMode>("prime_random");
   const [problemCount, setProblemCount] = useState(10);
   const [selectedTables, setSelectedTables] = useState<number[]>(PRIME_TABLES);
   const [isOrdered, setIsOrdered] = useState(false);
@@ -58,6 +73,9 @@ export default function StudentPlayPage() {
   const [startedAt, setStartedAt] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [resultMessage, setResultMessage] = useState("");
+  const [attempts, setAttempts] = useState<AttemptedProblem[]>([]);
+  const [bookmarkedIndexes, setBookmarkedIndexes] = useState<number[]>([]);
+  const [showReviewList, setShowReviewList] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -71,7 +89,6 @@ export default function StudentPlayPage() {
       }
 
       if (!result.success) {
-        // If session is invalid, redirect to student login
         if (result.error && result.error.includes("로그인")) {
           router.replace("/login/student");
           return;
@@ -111,6 +128,12 @@ export default function StudentPlayPage() {
     return workspace.schedules[0] ?? null;
   }, [workspace]);
 
+  const wrongProblems = attempts.filter((attempt) => !attempt.isCorrect);
+  const currentBookmarked = bookmarkedIndexes.includes(currentIndex);
+  const progressPercent = isRunning
+    ? Math.round(((currentIndex + 1) / problemCount) * 100)
+    : 0;
+
   const startSession = (nextIsExam: boolean) => {
     if (nextIsExam && !workspace?.activeExam) {
       window.alert("현재 시험 응시 시간이 아닙니다.");
@@ -123,8 +146,19 @@ export default function StudentPlayPage() {
     setCorrectCount(0);
     setElapsed(0);
     setResultMessage("");
+    setAttempts([]);
+    setBookmarkedIndexes([]);
+    setShowReviewList(false);
     setStartedAt(Date.now());
     setCurrentProblem(makeProblem(mode, selectedTables, 0, isOrdered));
+  };
+
+  const toggleBookmarkCurrent = () => {
+    setBookmarkedIndexes((prev) =>
+      prev.includes(currentIndex)
+        ? prev.filter((index) => index !== currentIndex)
+        : [...prev, currentIndex],
+    );
   };
 
   const submitAnswer = async () => {
@@ -132,14 +166,33 @@ export default function StudentPlayPage() {
       return;
     }
 
-    const nextCorrectCount = Number(answer) === currentProblem.answer ? correctCount + 1 : correctCount;
+    const userAnswer = answer.trim();
+
+    if (!userAnswer) {
+      setResultMessage("정답을 입력해 주세요.");
+      return;
+    }
+
+    const isCorrect = Number(userAnswer) === currentProblem.answer;
+    const submittedAttempt: AttemptedProblem = {
+      ...currentProblem,
+      index: currentIndex,
+      userAnswer,
+      isCorrect,
+      bookmarked: bookmarkedIndexes.includes(currentIndex),
+    };
+    const nextAttempts = [...attempts, submittedAttempt];
+    const nextCorrectCount = isCorrect ? correctCount + 1 : correctCount;
     const nextIndex = currentIndex + 1;
 
+    setAttempts(nextAttempts);
     setCorrectCount(nextCorrectCount);
     setAnswer("");
+    setResultMessage("");
 
     if (nextIndex >= problemCount) {
       setIsRunning(false);
+      setShowReviewList(nextAttempts.some((attempt) => !attempt.isCorrect));
       const totalElapsed = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
       const result = await submitStudentRecordAction({
         mode: isExam ? "exam" : mode,
@@ -153,8 +206,9 @@ export default function StudentPlayPage() {
         return;
       }
 
+      const nextWrongCount = nextAttempts.filter((attempt) => !attempt.isCorrect).length;
       setResultMessage(
-        `완료: ${nextCorrectCount}/${problemCount}문항, ${formatSeconds(totalElapsed)}`,
+        `완료! ${nextCorrectCount}/${problemCount}문항, ${formatSeconds(totalElapsed)} · 오답 ${nextWrongCount}개`,
       );
       return;
     }
@@ -175,14 +229,23 @@ export default function StudentPlayPage() {
     return (
       <S.Shell>
         <S.Container>
-          <S.Panel><S.PanelTitle>학생 화면 오류</S.PanelTitle><S.Muted>{error}</S.Muted></S.Panel>
+          <S.Panel>
+            <S.PanelTitle>학생 화면 오류</S.PanelTitle>
+            <S.Muted>{error}</S.Muted>
+          </S.Panel>
         </S.Container>
       </S.Shell>
     );
   }
 
   if (!workspace) {
-    return <S.Shell><S.Container><S.Panel>불러오는 중입니다...</S.Panel></S.Container></S.Shell>;
+    return (
+      <S.Shell>
+        <S.Container>
+          <S.Panel>불러오는 중입니다...</S.Panel>
+        </S.Container>
+      </S.Shell>
+    );
   }
 
   return (
@@ -190,7 +253,9 @@ export default function StudentPlayPage() {
       <S.Header>
         <S.Brand>
           <strong>{workspace.profile.className}</strong>
-          <span>{workspace.profile.studentNumber}번 {workspace.profile.name}</span>
+          <span>
+            {workspace.profile.studentNumber}번 {workspace.profile.name}
+          </span>
         </S.Brand>
         <S.Nav>
           <S.NavLink href="/student/play">연습/시험</S.NavLink>
@@ -199,126 +264,256 @@ export default function StudentPlayPage() {
         </S.Nav>
       </S.Header>
 
-      <S.Container>
+      <S.StudentPlayContainer>
         {upcomingSchedule ? (
-          <S.Notice>
+          <S.StudentNotice>
             <span>다가오는 시험: {upcomingSchedule.title}</span>
-            <span>{new Date(upcomingSchedule.startsAt).toLocaleString("ko-KR")} - {new Date(upcomingSchedule.endsAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</span>
-          </S.Notice>
+            <span>
+              {new Date(upcomingSchedule.startsAt).toLocaleString("ko-KR")} -{" "}
+              {new Date(upcomingSchedule.endsAt).toLocaleTimeString("ko-KR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </S.StudentNotice>
         ) : (
-          <S.Notice>등록된 시험 일정이 없습니다.</S.Notice>
+          <S.StudentNotice>등록된 시험 일정이 없습니다.</S.StudentNotice>
         )}
 
-        <S.Grid>
-          <S.Panel>
-            <S.PanelTitle>{isRunning ? "문제 풀이" : "연습 설정"}</S.PanelTitle>
+        <S.PlayGrid>
+          <S.PlayMainCard>
             {!isRunning ? (
               <>
-                <S.OptionGrid>
-                  <S.Field>
-                    연습 종류
-                    <S.Select value={mode} onChange={(event) => setMode(event.target.value)}>
-                      <option value="prime_random">소수 구구단 연습</option>
-                      <option value="two_digit">두 자릿수 곱셈 연습</option>
-                    </S.Select>
-                  </S.Field>
-                  <S.Field>
-                    문제 수
-                    <S.Select
-                      value={problemCount}
-                      onChange={(event) => setProblemCount(Number(event.target.value))}
+                <S.LearningHero>
+                  <S.MascotBubble>
+                    <Image
+                      src="/images/gugu.svg"
+                      alt="Gugu"
+                      fill
+                      sizes="128px"
+                      style={{ objectFit: "contain" }}
+                    />
+                  </S.MascotBubble>
+                  <S.LearningHeroText>
+                    <span>오늘의 학습</span>
+                    <strong>구구단 탐험을 시작해요</strong>
+                    <p>{problemCount}문제를 풀고 내 기록을 세워 보세요.</p>
+                  </S.LearningHeroText>
+                  <S.GoalRing>
+                    <strong>{problemCount}</strong>
+                    <span>문제</span>
+                  </S.GoalRing>
+                </S.LearningHero>
+
+                <S.ColorSection>
+                  <S.ColorSectionTitle>연습 종류</S.ColorSectionTitle>
+                  <S.ModeCardGrid>
+                    <S.ModeCardButton
+                      type="button"
+                      $active={mode === "prime_random"}
+                      $tone="mint"
+                      onClick={() => setMode("prime_random")}
                     >
-                      {COUNTS.map((count) => (
-                        <option key={count} value={count}>{count}문제</option>
-                      ))}
-                    </S.Select>
-                  </S.Field>
-                </S.OptionGrid>
+                      <span>소수 구구단</span>
+                      <strong>11단부터 41단까지</strong>
+                    </S.ModeCardButton>
+                    <S.ModeCardButton
+                      type="button"
+                      $active={mode === "two_digit"}
+                      $tone="blue"
+                      onClick={() => setMode("two_digit")}
+                    >
+                      <span>두 자릿수 곱셈</span>
+                      <strong>빠르게 계산하기</strong>
+                    </S.ModeCardButton>
+                  </S.ModeCardGrid>
+                </S.ColorSection>
+
+                <S.ColorSection>
+                  <S.ColorSectionTitle>문제 수</S.ColorSectionTitle>
+                  <S.CountButtonGrid>
+                    {COUNTS.map((count) => (
+                      <S.CountButton
+                        key={count}
+                        type="button"
+                        $active={problemCount === count}
+                        onClick={() => setProblemCount(count)}
+                      >
+                        {count}
+                      </S.CountButton>
+                    ))}
+                  </S.CountButtonGrid>
+                </S.ColorSection>
 
                 {mode === "prime_random" ? (
-                  <S.Panel style={{ boxShadow: "none", marginBottom: 16 }}>
-                    <S.Muted style={{ marginBottom: 10 }}>출제할 단 선택</S.Muted>
-                    <S.ButtonRow>
+                  <S.ColorSection>
+                    <S.ColorSectionTitle>출제할 단</S.ColorSectionTitle>
+                    <S.TableChipGrid>
                       {PRIME_TABLES.map((table) => (
-                        <S.Button
+                        <S.TableChip
                           key={table}
                           type="button"
-                          $variant={selectedTables.includes(table) ? "primary" : undefined}
+                          $active={selectedTables.includes(table)}
                           onClick={() => toggleTable(table)}
                         >
                           {table}단
-                        </S.Button>
+                        </S.TableChip>
                       ))}
-                    </S.ButtonRow>
-                    <label style={{ display: "inline-flex", gap: 8, marginTop: 12, fontSize: 13, fontWeight: 800 }}>
+                    </S.TableChipGrid>
+                    <S.ToggleLine>
                       <input
                         type="checkbox"
                         checked={isOrdered}
                         onChange={(event) => setIsOrdered(event.target.checked)}
                       />
                       선택한 단 순서대로 출제
-                    </label>
-                  </S.Panel>
+                    </S.ToggleLine>
+                  </S.ColorSection>
                 ) : null}
 
-                <S.ButtonRow>
-                  <S.Button type="button" $variant="primary" onClick={() => startSession(false)}>
+                <S.PrimaryPlayActions>
+                  <S.StartButton type="button" $tone="purple" onClick={() => startSession(false)}>
                     연습하기
-                  </S.Button>
-                  <S.Button
+                  </S.StartButton>
+                  <S.StartButton
                     type="button"
-                    $variant="primary"
+                    $tone="orange"
                     onClick={() => startSession(true)}
                     disabled={!workspace.activeExam}
                   >
                     시험보기
-                  </S.Button>
-                </S.ButtonRow>
+                  </S.StartButton>
+                </S.PrimaryPlayActions>
                 {!workspace.activeExam ? (
-                  <S.Muted style={{ marginTop: 10 }}>
-                    시험보기는 선생님이 지정한 시간에만 활성화됩니다.
-                  </S.Muted>
+                  <S.PlayHint>시험보기는 선생님이 지정한 시간에만 열립니다.</S.PlayHint>
                 ) : null}
               </>
             ) : (
-              <S.ProblemCard>
-                <S.Muted>
-                  {currentIndex + 1}/{problemCount} · {formatSeconds(elapsed)}
-                </S.Muted>
-                <strong>{currentProblem?.left} × {currentProblem?.right}</strong>
-                <S.Input
-                  inputMode="numeric"
-                  value={answer}
-                  onChange={(event) => setAnswer(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      submitAnswer();
-                    }
-                  }}
-                  autoFocus
-                />
-                <S.Button type="button" $variant="primary" onClick={submitAnswer}>
-                  제출
-                </S.Button>
-              </S.ProblemCard>
-            )}
-            {resultMessage ? <S.Notice style={{ marginTop: 16 }}>{resultMessage}</S.Notice> : null}
-          </S.Panel>
+              <S.StudyStage>
+                <S.StudyTopBar>
+                  <S.ProgressPill>
+                    <span>{currentIndex + 1}/{problemCount}</span>
+                    <S.ProgressTrack>
+                      <S.ProgressFill $percent={progressPercent} />
+                    </S.ProgressTrack>
+                  </S.ProgressPill>
+                  <S.TimerBadge>{formatSeconds(elapsed)}</S.TimerBadge>
+                </S.StudyTopBar>
 
-          <S.Panel>
-            <S.PanelTitle>최근 내 기록</S.PanelTitle>
-            {workspace.records.length === 0 ? (
-              <S.Muted>아직 저장된 기록이 없습니다.</S.Muted>
-            ) : (
-              workspace.records.slice(0, 6).map((record) => (
-                <S.Notice key={record.id}>
-                  {record.mode} · {record.accuracy}% · {formatSeconds(record.elapsedSeconds)}
-                </S.Notice>
-              ))
+                <S.StudyMetaRow>
+                  <S.LevelBadge>
+                    {isExam ? "시험" : "연습"} {currentIndex + 1}
+                  </S.LevelBadge>
+                  <S.BookmarkButton
+                    type="button"
+                    $active={currentBookmarked}
+                    onClick={toggleBookmarkCurrent}
+                  >
+                    {currentBookmarked ? "책갈피 완료" : "모르겠어요"}
+                  </S.BookmarkButton>
+                </S.StudyMetaRow>
+
+                <S.MathQuestionCard>
+                  <S.QuestionTypeLabel>
+                    {mode === "prime_random" ? "소수 구구단" : "두 자릿수 곱셈"}
+                  </S.QuestionTypeLabel>
+                  <S.BigProblemText>
+                    {currentProblem?.left} × {currentProblem?.right}
+                  </S.BigProblemText>
+                  <S.AnswerBubble>
+                    <S.AnswerInput
+                      inputMode="numeric"
+                      value={answer}
+                      onChange={(event) => setAnswer(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          void submitAnswer();
+                        }
+                      }}
+                      placeholder="정답"
+                      autoFocus
+                    />
+                  </S.AnswerBubble>
+                </S.MathQuestionCard>
+
+                <S.PlayControlGrid>
+                  <S.ControlButton type="button" $tone="yellow" onClick={() => setAnswer("")}>
+                    지우기
+                  </S.ControlButton>
+                  <S.ControlButton type="button" $tone="mint" onClick={toggleBookmarkCurrent}>
+                    책갈피
+                  </S.ControlButton>
+                  <S.ControlButton type="button" $tone="blue" onClick={submitAnswer}>
+                    다음 문제
+                  </S.ControlButton>
+                </S.PlayControlGrid>
+              </S.StudyStage>
             )}
-          </S.Panel>
-        </S.Grid>
-      </S.Container>
+            {resultMessage ? <S.StudentResultNotice>{resultMessage}</S.StudentResultNotice> : null}
+          </S.PlayMainCard>
+
+          <S.PlaySideStack>
+            <S.ReviewCard>
+              <S.ReviewHeader>
+                <div>
+                  <span>오답 노트</span>
+                  <strong>{wrongProblems.length}개</strong>
+                </div>
+                <S.SmallToggleButton
+                  type="button"
+                  onClick={() => setShowReviewList((prev) => !prev)}
+                  disabled={wrongProblems.length === 0}
+                >
+                  {showReviewList ? "접기" : "틀린 문제 보기"}
+                </S.SmallToggleButton>
+              </S.ReviewHeader>
+              {showReviewList ? (
+                <S.ReviewList>
+                  {wrongProblems.length === 0 ? (
+                    <S.Muted>아직 틀린 문제가 없습니다.</S.Muted>
+                  ) : (
+                    wrongProblems.map((problem) => (
+                      <S.ReviewItem key={`${problem.index}-${problem.left}-${problem.right}`}>
+                        <strong>
+                          {problem.index + 1}. {problem.left} × {problem.right}
+                        </strong>
+                        <span>
+                          내 답 {problem.userAnswer} · 정답 {problem.answer}
+                        </span>
+                        {problem.bookmarked ? <em>책갈피</em> : null}
+                      </S.ReviewItem>
+                    ))
+                  )}
+                </S.ReviewList>
+              ) : (
+                <S.ReviewSummaryGrid>
+                  <S.ReviewMiniStat>
+                    <span>푼 문제</span>
+                    <strong>{attempts.length}</strong>
+                  </S.ReviewMiniStat>
+                  <S.ReviewMiniStat>
+                    <span>책갈피</span>
+                    <strong>{bookmarkedIndexes.length}</strong>
+                  </S.ReviewMiniStat>
+                </S.ReviewSummaryGrid>
+              )}
+            </S.ReviewCard>
+
+            <S.Panel>
+              <S.PanelTitle>최근 내 기록</S.PanelTitle>
+              {workspace.records.length === 0 ? (
+                <S.Muted>아직 저장된 기록이 없습니다.</S.Muted>
+              ) : (
+                workspace.records.slice(0, 6).map((record) => (
+                  <S.Notice key={record.id}>
+                    {record.mode} · {record.accuracy}% · {formatSeconds(record.elapsedSeconds)}
+                  </S.Notice>
+                ))
+              )}
+            </S.Panel>
+          </S.PlaySideStack>
+        </S.PlayGrid>
+      </S.StudentPlayContainer>
     </S.Shell>
   );
 }
