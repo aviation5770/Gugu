@@ -52,6 +52,8 @@ type ExamScheduleRow = {
   starts_at: string;
   ends_at: string;
   created_at: string;
+  problem_count: number | null;
+  duration_seconds: number | null;
 };
 
 type StudentRecordSummaryRow = {
@@ -91,6 +93,8 @@ type CreateScheduleInput = {
   title: string;
   startsAt: string;
   endsAt: string;
+  problemCount?: number;
+  durationSeconds?: number;
 };
 
 export type TeacherWorkspace = {
@@ -237,6 +241,8 @@ function toTeacherScheduleEvent(
     starts_at: row.starts_at,
     ends_at: row.ends_at,
     color: classItem.header_color,
+    problem_count: row.problem_count,
+    duration_seconds: row.duration_seconds,
   };
 }
 
@@ -365,7 +371,9 @@ export async function loadTeacherWorkspaceAction(): Promise<
     const { data: scheduleRows, error: scheduleError } = classIds.length
       ? await db
           .from("exam_schedules")
-          .select("id, class_id, title, starts_at, ends_at, created_at")
+          .select(
+            "id, class_id, title, starts_at, ends_at, created_at, problem_count, duration_seconds",
+          )
           .in("class_id", classIds)
           .order("starts_at", { ascending: true })
           .returns<ExamScheduleRow[]>()
@@ -730,6 +738,8 @@ export async function createScheduleAction({
   title,
   startsAt,
   endsAt,
+  problemCount,
+  durationSeconds,
 }: CreateScheduleInput): Promise<ActionResult<TeacherScheduleEvent>> {
   try {
     const normalizedTitle = normalizeRequiredText(title, "시험 제목");
@@ -743,8 +753,12 @@ export async function createScheduleAction({
         title: normalizedTitle,
         starts_at: startsAt,
         ends_at: endsAt,
+        problem_count: problemCount ?? null,
+        duration_seconds: durationSeconds ?? null,
       })
-      .select("id, class_id, title, starts_at, ends_at, created_at")
+      .select(
+        "id, class_id, title, starts_at, ends_at, created_at, problem_count, duration_seconds",
+      )
       .single<ExamScheduleRow>();
 
     if (error) {

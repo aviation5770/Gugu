@@ -380,6 +380,8 @@ export function TeacherClassProvider({ children }: { children: ReactNode }) {
         starts_at: startsAt,
         ends_at: endsAt,
         color: classItem.header_color,
+        problem_count: input.problemCount,
+        duration_seconds: input.durationSeconds,
       };
 
       setEvents((prev) => [...prev, event]);

@@ -44,6 +44,8 @@ export type TeacherScheduleEvent = {
   starts_at?: string;
   ends_at?: string;
   color: string;
+  problem_count?: number | null;
+  duration_seconds?: number | null;
 };
 
 export const MOCK_TEACHER_CLASSES: TeacherClass[] = [];
