@@ -1,0 +1,130 @@
+PROJECT: Gugu
+Generated: 2026-06-23
+
+Root files and folders:
+- .git/
+- .gitignore
+- .env
+- .next/
+- README.md
+- eslint.config.mjs
+- next-env.d.ts
+- next.config.ts
+- package.json
+- package-lock.json
+- tsconfig.json
+- types_db.ts
+- prisma/
+  - prisma.config.ts
+  - schema.prisma
+- public/  (static assets)
+- supabase/
+  - schema.sql
+- src/
+  - app/
+    - (auth)/
+      - _components/
+        - AuthBackground.style.ts
+        - AuthBackground.tsx
+        - CodeStepForm.tsx
+        - uthStepForm.tsx
+      - find-password/
+        - page.tsx
+      - login/
+        - student/
+          - page.tsx
+          - student-login.style.ts
+        - teacher/
+          - page.tsx
+          - teacher-login.style.ts
+      - signup/
+        - page.tsx
+        - signup.style.ts
+    - (student)/
+      - layout.tsx
+      - student/
+        - _components/
+          - StudentAppChrome.tsx
+          - StudentBottomNav.tsx
+          - StudentLearningPage.tsx
+          - StudentTopBar.tsx
+        - exam/
+          - page.tsx
+        - practice/
+          - page.tsx
+        - ranking/
+          - page.tsx
+        - wrong/
+          - page.tsx
+        - page.tsx
+        - student.styles.ts
+    - (teacher)/
+      - _components/
+        - LeftSidebar.styles.ts
+        - LeftSidebar.tsx
+        - TopNavbar.styles.ts
+        - TopNavbar.tsx
+      - _context/
+        - TeacherClassContext.tsx
+      - _data/
+        - mockTeacher.ts
+      - layout.styles.ts
+      - layout.tsx
+      - teacher/
+        - page.tsx
+        - calendar/
+          - calendar.styles.ts
+          - page.tsx
+        - class/
+          - [classId]/
+            - class-detail.styles.ts
+            - page.tsx
+            - ranking/
+              - page.tsx
+            - student/
+              - [studentId]/
+                - page.tsx
+                - student-detail.styles.ts
+          - new/
+            - new-class.styles.ts
+            - page.tsx
+        - dashboard/
+          - dashboard.styles.ts
+          - page.tsx
+        - home/
+          - home.styles.ts
+          - page.tsx
+        - ranking/
+          - page.tsx
+          - ranking.styles.ts
+    - _components/
+      - GlobalLoadingOverlay.tsx
+    - actions/
+      - auth.ts
+      - class.ts
+      - locale.ts
+      - student.ts
+    - error.tsx
+    - favicon.ico
+    - globals.css
+    - landing-page.style.ts
+    - layout.tsx
+    - loading.tsx
+    - not-found.tsx
+    - page.tsx
+    - sitemap.ts
+  - components/
+    - LanguageSwitcher.tsx
+    - LoadingSpinner.tsx
+  - i18n/
+    - config.ts
+    - LocaleProvider.tsx
+  - type.ts
+  - utils/
+    - supabase.ts
+    - supabase/
+      - server.ts
+
+Notes:
+- This is a snapshot of the repository structure (not a content dump of each file).
+- If you want a deeper listing for any folder (e.g. `prisma/` or `src/app/(teacher)`), tell me which folder and I'll expand it into a new file or show it here.

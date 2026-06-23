@@ -5,6 +5,7 @@ import StudentAppChrome from "../_components/StudentAppChrome";
 import { loadStudentWorkspaceAction } from "@/app/actions/student";
 import type { StudentWorkspace } from "@/app/actions/student";
 import * as S from "../student.styles";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 function formatSeconds(seconds: number) {
   if (!seconds) {
@@ -51,7 +52,13 @@ export default function StudentRankingPage() {
   }
 
   if (!workspace) {
-    return <S.Shell><S.Container><S.Panel>불러오는 중입니다...</S.Panel></S.Container></S.Shell>;
+    return (
+      <S.Shell>
+        <S.Container>
+          <LoadingSpinner />
+        </S.Container>
+      </S.Shell>
+    );
   }
 
   const myRanking = workspace.rankings.find((ranking) => ranking.isMe);

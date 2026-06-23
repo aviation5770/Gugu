@@ -277,31 +277,19 @@ export async function loadStudentWorkspaceAction(): Promise<
       );
     }
 
-    // Query exam schedules. Some deployments may not have the optional
-    // columns (problem_count / time_limit_seconds) yet — tolerate that
-    // by selecting the core fields only and falling back to an empty
-    // schedule list on error.
-    let scheduleRows: ScheduleRow[] = [];
-    try {
-      const resp = await db
-        .from("exam_schedules")
-        .select("id, title, starts_at, ends_at")
-        .eq("class_id", session.classId)
-        .order("starts_at", { ascending: true })
-        .returns<ScheduleRow[]>();
+    // Run non-dependent queries in parallel to reduce overall latency.
+    const timersEnabled = process.env.NODE_ENV !== "production";
 
-      if (resp.error) {
-        // If selecting basic fields fails, treat as no schedules available.
-        scheduleRows = [];
-      } else {
-        scheduleRows = resp.data ?? [];
-      }
-    } catch (err) {
-      // Defensive: if the DB client throws, ignore and continue with empty schedules.
-      scheduleRows = [];
-    }
+    if (timersEnabled) console.time("loadStudentWorkspace:parallelQueries");
 
-    const { data: classStudents, error: classStudentsError } = await db
+    const scheduleResp = await db
+      .from("exam_schedules")
+      .select("id, title, starts_at, ends_at")
+      .eq("class_id", session.classId)
+      .order("starts_at", { ascending: true })
+      .returns<ScheduleRow[]>();
+
+    const classStudentsResp = await db
       .from("students")
       .select(
         "id, class_id, student_number, name, birth_date, profile_image_url",
@@ -310,11 +298,7 @@ export async function loadStudentWorkspaceAction(): Promise<
       .order("student_number", { ascending: true })
       .returns<StudentRow[]>();
 
-    if (classStudentsError) {
-      throw new Error(classStudentsError.message);
-    }
-
-    const { data: recordRows, error: recordError } = await db
+    const recordRowsResp = await db
       .from("student_records")
       .select(
         "id, class_id, student_id, mode, problem_count, correct_count, accuracy, elapsed_seconds, created_at",
@@ -323,10 +307,32 @@ export async function loadStudentWorkspaceAction(): Promise<
       .order("created_at", { ascending: false })
       .returns<RecordRow[]>();
 
-    if (recordError) {
-      throw new Error(`기록 테이블을 확인해 주세요: ${recordError.message}`);
+    if (timersEnabled) console.timeEnd("loadStudentWorkspace:parallelQueries");
+
+    const scheduleRows = scheduleResp.data ?? [];
+    const classStudents = classStudentsResp.data ?? [];
+    const recordRows = recordRowsResp.data ?? [];
+
+    if (scheduleResp.error && process.env.NODE_ENV !== "production") {
+      console.warn(
+        "exam_schedules query warning:",
+        scheduleResp.error.message ?? scheduleResp.error,
+      );
     }
 
+    if (classStudentsResp.error && process.env.NODE_ENV !== "production") {
+      console.warn(
+        "students query warning:",
+        classStudentsResp.error.message ?? classStudentsResp.error,
+      );
+    }
+
+    if (recordRowsResp.error && process.env.NODE_ENV !== "production") {
+      console.warn(
+        "student_records query warning:",
+        recordRowsResp.error.message ?? recordRowsResp.error,
+      );
+    }
     const schedules = scheduleRows.map(toExamSchedule);
     const now = Date.now();
     const nextExam =

@@ -10,6 +10,7 @@ import {
 } from "@/app/actions/student";
 import type { StudentWorkspace } from "@/app/actions/student";
 import * as S from "../student.styles";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type PracticeMode = "prime_random" | "two_digit";
 
@@ -300,7 +301,7 @@ export default function StudentPracticePage() {
     return (
       <S.Shell>
         <S.Container>
-          <S.Panel>불러오는 중입니다...</S.Panel>
+          <LoadingSpinner />
         </S.Container>
       </S.Shell>
     );

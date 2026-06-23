@@ -118,7 +118,7 @@ export default function StudentInfoPage() {
   };
 
   if (!workspace) {
-    return <LoadingSpinner message={message || "불러오는 중입니다..."} />;
+    return <LoadingSpinner />;
   }
 
   const myRanking = workspace.rankings.find((ranking) => ranking.isMe);

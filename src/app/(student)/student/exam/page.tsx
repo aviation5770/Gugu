@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import StudentAppChrome from "../_components/StudentAppChrome";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -275,7 +276,7 @@ export default function StudentExamPage() {
     return (
       <S.Shell>
         <S.Container>
-          <S.Panel>불러오는 중입니다...</S.Panel>
+          <LoadingSpinner />
         </S.Container>
       </S.Shell>
     );

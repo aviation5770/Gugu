@@ -9,6 +9,7 @@ import {
 } from "@/app/actions/student";
 import type { StudentWorkspace } from "@/app/actions/student";
 import StudentAppChrome from "./StudentAppChrome";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import * as S from "../student.styles";
 
 type LearningVariant = "practice" | "exam";
@@ -250,7 +251,7 @@ export default function StudentLearningPage({
       <S.Shell>
         <StudentAppChrome />
         <S.Container>
-          <S.Panel>불러오는 중입니다...</S.Panel>
+          <LoadingSpinner />
         </S.Container>
       </S.Shell>
     );

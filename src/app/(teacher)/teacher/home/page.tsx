@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import * as S from "./home.styles";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { useTeacherClasses } from "../../_context/TeacherClassContext";
 
 export default function TeacherDashboardPage() {
@@ -24,7 +25,7 @@ export default function TeacherDashboardPage() {
         <S.PageDescription>초대받은 수업은 [게스트]로 표시됩니다.</S.PageDescription>
       </S.HeaderTitleSection>
 
-      {isLoading ? <S.EmptyState>수업 정보를 불러오는 중입니다.</S.EmptyState> : null}
+      {isLoading ? <LoadingSpinner /> : null}
       {loadError ? <S.EmptyState>{loadError}</S.EmptyState> : null}
       {!isLoading && !loadError && classes.length === 0 ? (
         <S.EmptyState>아직 생성된 수업이 없습니다. 상단 + 버튼으로 수업을 생성해 주세요.</S.EmptyState>
