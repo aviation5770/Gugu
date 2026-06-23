@@ -12,6 +12,8 @@ import { supabase } from "@/utils/supabase";
 import type { StudentWorkspace } from "@/app/actions/student";
 import * as S from "./student.styles";
 
+import LoadingSpinner from "@/components/LoadingSpinner";
+
 function formatSeconds(seconds: number) {
   if (!seconds) {
     return "기록 없음";
@@ -116,7 +118,7 @@ export default function StudentInfoPage() {
   };
 
   if (!workspace) {
-    return <S.Shell><S.Container><S.Panel>{message || "불러오는 중입니다..."}</S.Panel></S.Container></S.Shell>;
+    return <LoadingSpinner message={message || "불러오는 중입니다..."} />;
   }
 
   const myRanking = workspace.rankings.find((ranking) => ranking.isMe);
