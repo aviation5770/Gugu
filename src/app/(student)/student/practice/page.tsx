@@ -286,29 +286,25 @@ export default function StudentPracticePage() {
 
   if (error) {
     return (
-      <S.Shell>
-        <S.Container>
-          <S.Panel>
-            <S.PanelTitle>학생 화면 오류</S.PanelTitle>
-            <S.Muted>{error}</S.Muted>
-          </S.Panel>
-        </S.Container>
-      </S.Shell>
+      <S.Container>
+        <S.Panel>
+          <S.PanelTitle>학생 화면 오류</S.PanelTitle>
+          <S.Muted>{error}</S.Muted>
+        </S.Panel>
+      </S.Container>
     );
   }
 
   if (!workspace) {
     return (
-      <S.Shell>
-        <S.Container>
-          <LoadingSpinner />
-        </S.Container>
-      </S.Shell>
+      <S.Container>
+        <LoadingSpinner />
+      </S.Container>
     );
   }
 
   return (
-    <S.Shell>
+    <>
       <StudentAppChrome />
 
       <S.StudentPlayContainer>
@@ -425,23 +421,11 @@ export default function StudentPracticePage() {
                     <S.StartButton type="button" $tone="purple" onClick={() => startSession(false)}>
                       연습하기
                     </S.StartButton>
-                    {workspace.activeExam ? (
-                      <S.StartButton type="button" $tone="orange" onClick={() => router.push("/student/exam")}>
-                        시험보기
-                      </S.StartButton>
-                    ) : (
-                      <S.StartButton type="button" $tone="orange" disabled>
-                        시험보기
-                      </S.StartButton>
-                    )}
                     <S.StartButton type="button" $tone="green" onClick={() => router.push("/student/wrong")}>
                       오답노트
                     </S.StartButton>
                   </>
                 </S.PrimaryPlayActions>
-                {!workspace.activeExam ? (
-                  <S.PlayHint>시험보기는 선생님이 지정한 시간에만 열립니다.</S.PlayHint>
-                ) : null}
               </>
             ) : (
               <S.StudyStage>
@@ -569,6 +553,6 @@ export default function StudentPracticePage() {
           </S.PlaySideStack>
         </S.PlayGrid>
       </S.StudentPlayContainer>
-    </S.Shell>
+    </>
   );
 }

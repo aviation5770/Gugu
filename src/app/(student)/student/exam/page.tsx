@@ -261,29 +261,25 @@ export default function StudentExamPage() {
 
   if (error) {
     return (
-      <S.Shell>
-        <S.Container>
-          <S.Panel>
-            <S.PanelTitle>학생 화면 오류</S.PanelTitle>
-            <S.Muted>{error}</S.Muted>
-          </S.Panel>
-      </S.Container>
-    </S.Shell>
+      <S.Container>
+        <S.Panel>
+          <S.PanelTitle>학생 화면 오류</S.PanelTitle>
+          <S.Muted>{error}</S.Muted>
+        </S.Panel>
+    </S.Container>
     );
   }
 
   if (!workspace) {
     return (
-      <S.Shell>
-        <S.Container>
-          <LoadingSpinner />
-        </S.Container>
-      </S.Shell>
+      <S.Container>
+        <LoadingSpinner />
+      </S.Container>
     );
   }
 
   return (
-    <S.Shell>
+    <>
       <StudentAppChrome />
 
       <S.StudentPlayContainer>
@@ -473,6 +469,6 @@ export default function StudentExamPage() {
           </S.PlaySideStack>
         </S.PlayGrid>
       </S.StudentPlayContainer>
-    </S.Shell>
+    </>
   );
 }

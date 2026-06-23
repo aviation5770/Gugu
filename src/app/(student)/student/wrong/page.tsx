@@ -31,6 +31,7 @@ export default function WrongNotePage() {
       const raw = localStorage.getItem("last_attempts");
       if (!raw) return;
       const parsed = JSON.parse(raw) as LastAttemptsPayload;
+      // 
       setPayload(parsed);
     } catch (e) {
       // ignore
@@ -40,7 +41,7 @@ export default function WrongNotePage() {
   const wrongs = payload?.attempts?.filter((a) => !a.isCorrect) ?? [];
 
   return (
-    <S.Shell>
+    <>
       <StudentAppChrome />
 
       <S.StudentPlayContainer>
@@ -86,6 +87,6 @@ export default function WrongNotePage() {
           </S.PlaySideStack>
         </S.PlayGrid>
       </S.StudentPlayContainer>
-    </S.Shell>
+    </>
   );
 }

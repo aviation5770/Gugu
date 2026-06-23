@@ -4,14 +4,23 @@ import styled from "styled-components";
 import Link from "next/link";
 
 export const Shell = styled.main`
+  position: relative;
   min-height: 100vh;
   background-color: #fafafa;
   color: #083b4d;
 `;
 
+export const ShellContent = styled.div`
+  position: relative;
+  z-index: 1;
+  padding-top: 64px;
+`;
+
 export const StudentTopBar = styled.div`
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 40;
   height: 64px;
   display: flex;

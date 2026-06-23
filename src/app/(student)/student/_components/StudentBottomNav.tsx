@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import * as S from "../student.styles";
 
 const NAV_ITEMS = [

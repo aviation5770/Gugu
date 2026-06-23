@@ -53,18 +53,16 @@ export default function StudentRankingPage() {
 
   if (!workspace) {
     return (
-      <S.Shell>
-        <S.Container>
-          <LoadingSpinner />
-        </S.Container>
-      </S.Shell>
+      <S.Container>
+        <LoadingSpinner />
+      </S.Container>
     );
   }
 
   const myRanking = workspace.rankings.find((ranking) => ranking.isMe);
 
   return (
-    <S.Shell>
+    <>
       <StudentAppChrome />
 
       <S.Container>
@@ -96,6 +94,6 @@ export default function StudentRankingPage() {
           ) : null}
         </S.Panel>
       </S.Container>
-    </S.Shell>
+    </>
   );
 }
