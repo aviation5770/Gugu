@@ -3,7 +3,7 @@ import styled from "styled-components";
 export const PageWrapper = styled.div`
   width: 100%;
   min-height: 100vh;
-  background-color: #ffffff;
+  background: transparent;
   font-family: "Noto Sans KR", sans-serif;
   overflow-x: hidden;
 `;
