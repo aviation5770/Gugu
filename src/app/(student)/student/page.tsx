@@ -133,7 +133,7 @@ export default function StudentInfoPage() {
     })[0];
 
   return (
-    <S.Shell>
+    <>
       <StudentAppChrome />
 
       <S.Container>
@@ -196,6 +196,6 @@ export default function StudentInfoPage() {
           </S.Panel>
         </S.Grid>
       </S.Container>
-    </S.Shell>
+    </>
   );
 }
