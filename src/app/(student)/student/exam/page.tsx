@@ -334,7 +334,7 @@ export default function StudentExamPage() {
 
                 <S.Muted>시험 모드 — 선생님이 설정한 문제/시간으로 진행됩니다.</S.Muted>
 
-                <S.PrimaryPlayActions>
+                <S.PrimaryPlayActions $columns={1}>
                   <S.StartButton type="button" $tone="orange" onClick={() => startSession(true)} disabled={!workspace.activeExam}>
                     시험 시작
                   </S.StartButton>

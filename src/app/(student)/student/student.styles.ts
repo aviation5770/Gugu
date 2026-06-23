@@ -531,7 +531,7 @@ export const StartButton = styled.button<{
       : props.$tone === "orange"
         ? "#db2777"
         : "#34d399"};
-  color: ${(props) => (props.$tone === "orange" ? "#db2777" : "#ffffff")};
+  color: ${(props) => (props.$tone === "orange" ? "#ffffff" : "#ffffff")};
   font-size: 18px;
   font-weight: 900;
   cursor: pointer;

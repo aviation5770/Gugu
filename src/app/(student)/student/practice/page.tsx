@@ -337,8 +337,8 @@ export default function StudentPracticePage() {
                   </S.MascotBubble>
                   <S.LearningHeroText>
                     <span>오늘의 학습</span>
-                    <strong>구구단 탐험을 시작해요</strong>
-                    <p>{problemCount}문제를 풀고 내 기록을 세워 보세요.</p>
+                    <strong>소수 구구단 연습하기</strong>
+                    <p>{problemCount}문제를 풀고 기록을 저장해 친구들과 경쟁해주세요.</p>
                   </S.LearningHeroText>
                   <S.GoalRing>
                     <strong>{problemCount}</strong>
